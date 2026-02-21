@@ -1,0 +1,152 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 210 20% 98%;
+    --foreground: 215 25% 15%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 215 25% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 25% 15%;
+
+    /* Teal */
+    --primary: 174 62% 38%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 210 18% 93%;
+    --secondary-foreground: 215 25% 20%;
+
+    --muted: 210 14% 93%;
+    --muted-foreground: 215 12% 50%;
+
+    --accent: 174 40% 92%;
+    --accent-foreground: 174 62% 25%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 214 20% 88%;
+    --input: 214 20% 88%;
+    --ring: 174 62% 38%;
+
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    --background: 215 28% 10%;
+    --foreground: 210 20% 92%;
+
+    --card: 215 25% 14%;
+    --card-foreground: 210 20% 92%;
+
+    --popover: 215 25% 14%;
+    --popover-foreground: 210 20% 92%;
+
+    --primary: 174 55% 45%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 215 20% 20%;
+    --secondary-foreground: 210 20% 85%;
+
+    --muted: 215 18% 18%;
+    --muted-foreground: 210 12% 55%;
+
+    --accent: 174 30% 18%;
+    --accent-foreground: 174 55% 65%;
+
+    --destructive: 0 62% 45%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 215 18% 22%;
+    --input: 215 18% 22%;
+    --ring: 174 55% 45%;
+  }
+
+  /* High-contrast mode */
+  .high-contrast {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 0%;
+
+    --card: 0 0% 98%;
+    --card-foreground: 0 0% 0%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 0%;
+
+    --primary: 174 100% 28%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 0 0% 92%;
+    --secondary-foreground: 0 0% 0%;
+
+    --muted: 0 0% 92%;
+    --muted-foreground: 0 0% 30%;
+
+    --accent: 174 60% 88%;
+    --accent-foreground: 0 0% 0%;
+
+    --border: 0 0% 55%;
+    --input: 0 0% 55%;
+    --ring: 174 100% 28%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+}
+
+
+:root {
+  text-rendering: geometricPrecision;
+}
+
+.bionic-bold {
+  font-weight: 650;
+  letter-spacing: 0.1px;
+}
+
+.chunk-highlight {
+  background: rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 14px;
+  padding: 10px 12px;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+/* Glossary term underline */
+.glossary-term {
+  text-decoration: underline;
+  text-decoration-color: rgba(0, 0, 0, 0.22);
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.glossary-term:hover {
+  text-decoration-color: rgba(0, 0, 0, 0.5);
+}
+
+/* Dark mode */
+.dark .chunk-highlight {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.10);
+}
+
+.dark .glossary-term {
+  text-decoration-color: rgba(255, 255, 255, 0.25);
+}
+
+.dark .glossary-term:hover {
+  text-decoration-color: rgba(255, 255, 255, 0.55);
+}
+
+.high-contrast .glossary-term {
+  text-decoration-color: rgba(0, 0, 0, 0.8);
+}
