@@ -25,7 +25,7 @@ export default function AdaptivePrompt() {
 
   const [active, setActive] = useState<Prompt | null>(null);
 
-  // To prrevent spamming we only show at most once per session unless user re-enables prompts
+  // To prevent spamming we only show at most once per session unless user re-enables prompts
   const shownOnceRef = useRef(false);
 
   const eligiblePrompt = useMemo(() => {
@@ -41,11 +41,12 @@ export default function AdaptivePrompt() {
     return null;
   }, [preferences.chunking, preferences.bionicReading, preferences.glossary]);
 
+  // promptFrequency removed — cooldown is now derived from support level
   const cooldownMs = useMemo(() => {
-    if (preferences.promptFrequency === "low") return 25000;
-    if (preferences.promptFrequency === "high") return 8000;
+    if (preferences.supportLevel === "low") return 25000;
+    if (preferences.supportLevel === "high") return 8000;
     return 15000;
-  }, [preferences.promptFrequency]);
+  }, [preferences.supportLevel]);
 
   const lastShownAtRef = useRef<number | null>(null);
 
@@ -84,7 +85,6 @@ export default function AdaptivePrompt() {
   }, [
     promptsDisabled,
     preferences.adaptivePrompts,
-    preferences.promptFrequency,
     eligiblePrompt,
     active,
     session.longPauseCount,

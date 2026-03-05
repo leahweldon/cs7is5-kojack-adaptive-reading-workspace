@@ -48,6 +48,10 @@ export type ChangeLogEntry = {
 export type SessionState = {
   startTime: Date | null;
   readingTimeSec: number;
+
+  // This drives the progress bar in Reader
+  progressPct: number;
+
   scrollBackCount: number;
   longPauseCount: number;
 
@@ -124,6 +128,7 @@ const defaultUserModel: UserModel = {
 const defaultSession: SessionState = {
   startTime: null,
   readingTimeSec: 0,
+  progressPct: 0,
   scrollBackCount: 0,
   longPauseCount: 0,
   sessionMode: "study",
@@ -155,8 +160,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const [preferences, setPreferencesState] = useState<Preferences>(() => {
     const stored = safeLoad<Partial<Preferences>>(STORAGE_PREFS);
-
-    // merge stored prefs with defaults so adding new fields doesn't break old storage
     return stored ? { ...defaultPreferences, ...stored } : defaultPreferences;
   });
 

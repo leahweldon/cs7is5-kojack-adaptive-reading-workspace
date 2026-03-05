@@ -32,7 +32,6 @@ const PRESETS: Preset[] = [
       glossary: true,
       adaptivePrompts: true,
       progressIndicators: true,
-      promptFrequency: "medium",
       fontSize: 16,
       lineSpacing: 1.6,
       maxLineWidth: 720,
@@ -47,7 +46,6 @@ const PRESETS: Preset[] = [
       supportLevel: "high",
       chunking: true,
       adaptivePrompts: true,
-      promptFrequency: "high",
       maxLineWidth: 620,
       progressIndicators: true,
     },
@@ -217,7 +215,7 @@ export default function Onboarding() {
             </Card>
 
             {/* Live preview */}
-            <Card className="p-6 space-y-3">
+            <Card className="sticky top-6 z-20 p-6 space-y-3">
               <div className="text-sm font-medium">Preview</div>
               <div
                 className="rounded-xl border bg-card px-5 py-4"

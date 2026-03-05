@@ -21,11 +21,12 @@ export default function Nudges() {
   const lastShownAtRef = useRef<number | null>(null);
   const encouragementShownRef = useRef(false);
 
+  // promptFrequency removed — cooldown is now derived from support level (simple + scrutable)
   const cooldownMs = useMemo(() => {
-    if (preferences.promptFrequency === "low") return 30000;
-    if (preferences.promptFrequency === "high") return 10000;
+    if (preferences.supportLevel === "low") return 30000;
+    if (preferences.supportLevel === "high") return 10000;
     return 18000;
-  }, [preferences.promptFrequency]);
+  }, [preferences.supportLevel]);
 
   // Encouragement nudge: after ~60 seconds of reading time (once per session)
   useEffect(() => {
@@ -133,7 +134,6 @@ export default function Nudges() {
             <div className="text-sm text-muted-foreground">{active.message}</div>
 
             <div className="flex gap-2 flex-wrap pt-1">
-              {/* Only show “enable” actions if they’d actually change something */}
               {!preferences.chunking && (
                 <Button size="sm" onClick={enableChunking}>
                   Enable chunking

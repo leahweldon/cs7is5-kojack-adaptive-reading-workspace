@@ -1,6 +1,5 @@
 import {
   Preferences,
-  PromptFrequency,
   SessionMode,
   SupportLevel,
   useApp,
@@ -51,6 +50,7 @@ export default function SidePanel() {
     bumpToggle(key);
     addChange(`${key} ${value ? "enabled" : "disabled"} by user.`, "info");
 
+    // keep visible model in sync for scrutability (not "truth", just current state)
     if (key === "bionicReading") setUserModel({ bionicPreference: value });
     if (key === "glossary") setUserModel({ glossaryPreference: value });
   };
@@ -59,14 +59,10 @@ export default function SidePanel() {
     setSession((prev) => ({ ...prev, sessionMode: mode }));
     addChange(`Session mode set to ${mode}.`, "info");
 
+    // simple mapping to keep demo behaviour predictable
     if (mode === "skim") setPreferences({ supportLevel: "low" });
     if (mode === "study") setPreferences({ supportLevel: "high" });
     if (mode === "revise") setPreferences({ supportLevel: "medium" });
-  };
-
-  const setFreq = (freq: PromptFrequency) => {
-    setPreferences({ promptFrequency: freq });
-    addChange(`Prompt frequency set to ${freq}.`, "info");
   };
 
   const clearDifficulty = () => {
@@ -229,17 +225,6 @@ export default function SidePanel() {
                   addChange(`Adaptive prompts ${v ? "enabled" : "disabled"} by user.`, "info");
                 }}
               />
-
-              <div className="space-y-2 pt-2">
-                <div className="text-xs text-muted-foreground">Prompt frequency</div>
-                <Tabs value={preferences.promptFrequency} onValueChange={(v) => setFreq(v as PromptFrequency)}>
-                  <TabsList className="grid grid-cols-3">
-                    <TabsTrigger value="low" className="text-xs">Low</TabsTrigger>
-                    <TabsTrigger value="medium" className="text-xs">Medium</TabsTrigger>
-                    <TabsTrigger value="high" className="text-xs">High</TabsTrigger>
-                  </TabsList>
-                </Tabs>
-              </div>
             </Card>
 
             {/* Nudges section */}

@@ -1,6 +1,5 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import { useApp } from "@/shared/state/AppContext";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { GLOSSARY } from "./glossary";
@@ -24,13 +23,12 @@ export default function ContentPane() {
     setUserModel,
     bumpScrollBack,
     bumpLongPause,
+    setSession,
   } = useApp();
 
-  // glossary UI
   const [glossaryTerm, setGlossaryTerm] = useState<string | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const progressRef = useRef(0);
   const lastScrollTop = useRef(0);
   const pauseTimeout = useRef<number | null>(null);
 
@@ -38,7 +36,6 @@ export default function ContentPane() {
     return documentText.split("\n\n").filter((p) => p.trim().length > 0);
   }, [documentText]);
 
-  // Chunking
   const chunks = useMemo(() => {
     if (!preferences.chunking) return paragraphs;
 
@@ -62,13 +59,11 @@ export default function ContentPane() {
     addChange(`You seemed to struggle around ${label}.`, "info");
   };
 
-  // pause detection
-  const armPauseTimer = () => {
+  const armPauseTimer = (pct: number) => {
     if (pauseTimeout.current) window.clearTimeout(pauseTimeout.current);
 
     pauseTimeout.current = window.setTimeout(() => {
-      // only mid-document so it doesn't fire at the top/bottom
-      if (progressRef.current > 10 && progressRef.current < 90) {
+      if (pct > 10 && pct < 90) {
         bumpLongPause();
         addChange("Long pause detected (might be a tricky bit).", "info");
 
@@ -81,46 +76,74 @@ export default function ContentPane() {
         );
         markDifficultyAt(sectionIndex);
       }
-    }, 4500); // can change responsiveness here
+    }, 4500);
   };
 
+  // reset progress when doc changes
   useEffect(() => {
+    lastScrollTop.current = 0;
+    setSession((prev) => ({ ...prev, progressPct: 0 }));
+  }, [documentText, setSession]);
+
+  const computePct = (el: HTMLDivElement) => {
+    const denom = el.scrollHeight - el.clientHeight;
+    if (denom <= 0) return 0;
+    return Math.max(0, Math.min(100, (el.scrollTop / denom) * 100));
+  };
+
+  const computeWindowPct = () => {
+    const doc = document.documentElement;
+    const denom = doc.scrollHeight - window.innerHeight;
+    if (denom <= 0) return 0;
+    return Math.max(0, Math.min(100, (window.scrollY / denom) * 100));
+  };
+
+  const onScroll = () => {
     const el = containerRef.current;
     if (!el) return;
 
-    // start pause timer immediately
-    armPauseTimer();
+    const pct = computePct(el);
+    setSession((prev) => ({ ...prev, progressPct: pct }));
 
-    const onScroll = () => {
-      const denom = el.scrollHeight - el.clientHeight;
-      const pct = denom > 0 ? (el.scrollTop / denom) * 100 : 0;
-      progressRef.current = Number.isFinite(pct) ? pct : 0;
+    const diff = el.scrollTop - lastScrollTop.current;
 
-      const diff = el.scrollTop - lastScrollTop.current;
+    if (diff < -60) {
+      bumpScrollBack();
+      addChange("Scroll-back detected (possible reread).", "info");
 
-      // scroll-back
-      if (diff < -60) {
-        bumpScrollBack();
-        addChange("Scroll-back detected (possible reread).", "info");
+      const sectionIndex = Math.min(
+        Math.floor((el.scrollTop / Math.max(1, el.scrollHeight)) * chunks.length),
+        Math.max(0, chunks.length - 1)
+      );
+      markDifficultyAt(sectionIndex);
+    }
 
-        const sectionIndex = Math.min(
-          Math.floor((el.scrollTop / Math.max(1, el.scrollHeight)) * chunks.length),
-          Math.max(0, chunks.length - 1)
-        );
-        markDifficultyAt(sectionIndex);
-      }
+    lastScrollTop.current = el.scrollTop;
+    armPauseTimer(pct);
+  };
 
-      lastScrollTop.current = el.scrollTop;
-      armPauseTimer();
+  // Fallback for cases where page-level scrolling happens instead of pane scrolling.
+  useEffect(() => {
+    const onWindowScroll = () => {
+      const el = containerRef.current;
+      if (!el) return;
+
+      // Prefer pane progress whenever pane itself is scrollable.
+      if (el.scrollHeight - el.clientHeight > 1) return;
+
+      const pct = computeWindowPct();
+      setSession((prev) => ({ ...prev, progressPct: pct }));
     };
 
-    el.addEventListener("scroll", onScroll);
+    window.addEventListener("scroll", onWindowScroll, { passive: true });
+    window.addEventListener("resize", onWindowScroll);
+    onWindowScroll();
+
     return () => {
-      el.removeEventListener("scroll", onScroll);
-      if (pauseTimeout.current) window.clearTimeout(pauseTimeout.current);
+      window.removeEventListener("scroll", onWindowScroll);
+      window.removeEventListener("resize", onWindowScroll);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [chunks.length]);
+  }, [setSession]);
 
   // glossary
   const renderGlossaryWord = (raw: string) => {
@@ -154,38 +177,27 @@ export default function ContentPane() {
     return parts.map((part, i) => {
       if (/^\s+$/.test(part)) return <span key={i}>{part}</span>;
 
-      // glossary has priority
       const glossaryBtn = renderGlossaryWord(part);
       if (glossaryBtn) return <span key={i}>{glossaryBtn}</span>;
 
-      // otherwise bionic or plain
       if (preferences.bionicReading) return <span key={i}>{applyBionic(part)}</span>;
       return <span key={i}>{part}</span>;
     });
   };
 
-  const progress = Math.min(Math.max(progressRef.current, 0), 100);
-
   return (
-    <div className="h-full flex flex-col">
-      {preferences.progressIndicators && (
-        <div className="px-5 pt-4 pb-2">
-          <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
-            <span>Reading progress</span>
-            <span>{Math.round(progress)}%</span>
-          </div>
-          <Progress value={progress} />
-        </div>
-      )}
-
+    <div className="h-full min-h-0 flex flex-col">
       <div
         ref={containerRef}
-        className="flex-1 overflow-y-auto px-6 py-4"
+        onScroll={onScroll}
+        className="min-h-0 flex-1 overflow-y-auto px-6"
         style={{
           fontSize: `${preferences.fontSize}px`,
           lineHeight: preferences.lineSpacing,
           maxWidth: `${preferences.maxLineWidth}px`,
           margin: "0 auto",
+          paddingTop: preferences.progressIndicators ? "84px" : "24px",
+          paddingBottom: "24px",
         }}
       >
         {chunks.length === 0 ? (
@@ -193,14 +205,12 @@ export default function ContentPane() {
         ) : (
           chunks.map((c, idx) => (
             <div key={idx} className={`mb-4 ${preferences.chunking ? "chunk-highlight" : ""}`}>
-              {/* IMPORTANT: no leading-* class here, it overrides the slider */}
               <p>{renderText(c)}</p>
             </div>
           ))
         )}
       </div>
 
-      {/* Glossary card */}
       {glossaryTerm && (
         <div className="fixed bottom-20 left-1/2 -translate-x-1/2 w-full max-w-lg px-4 z-50">
           <Card className="p-4 shadow-sm">
