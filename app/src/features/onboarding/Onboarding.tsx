@@ -1,4 +1,4 @@
-import { Preferences, ReadingGoal, SupportLevel, useApp } from "@/shared/state/AppContext";
+import { Preferences, ReadingGoal, useApp } from "@/shared/state/AppContext";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -252,21 +252,6 @@ export default function Onboarding() {
                   <TabsTrigger value="skim">Skim</TabsTrigger>
                   <TabsTrigger value="understand">Understand</TabsTrigger>
                   <TabsTrigger value="study">Study</TabsTrigger>
-                </TabsList>
-              </Tabs>
-            </Card>
-
-            {/* Support level */}
-            <Card className="p-6 space-y-4">
-              <div className="text-sm font-medium">Support level</div>
-              <Tabs
-                value={preferences.supportLevel}
-                onValueChange={(v) => setPreferences({ supportLevel: v as SupportLevel })}
-              >
-                <TabsList className="grid grid-cols-3">
-                  <TabsTrigger value="low">Low</TabsTrigger>
-                  <TabsTrigger value="medium">Medium</TabsTrigger>
-                  <TabsTrigger value="high">High</TabsTrigger>
                 </TabsList>
               </Tabs>
             </Card>
