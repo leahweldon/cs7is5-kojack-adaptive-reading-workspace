@@ -59,16 +59,18 @@ export default function ContentPane() {
     addChange(`You seemed to struggle around ${label}.`, "info");
   };
 
-  const armPauseTimer = (pct: number) => {
+  const armPauseTimer = () => {
     if (pauseTimeout.current) window.clearTimeout(pauseTimeout.current);
 
     pauseTimeout.current = window.setTimeout(() => {
-      if (pct > 10 && pct < 90) {
+      const el = containerRef.current;
+      if (!el) return;
+
+      const pct = computePct(el);
+
+      if (pct < 90) {
         bumpLongPause();
         addChange("Long pause detected (might be a tricky bit).", "info");
-
-        const el = containerRef.current;
-        if (!el) return;
 
         const sectionIndex = Math.min(
           Math.floor((el.scrollTop / Math.max(1, el.scrollHeight)) * chunks.length),
@@ -76,8 +78,36 @@ export default function ContentPane() {
         );
         markDifficultyAt(sectionIndex);
       }
-    }, 4500);
+
+      // Re-arm so the timer keeps firing while the user stays idle.
+      // Each scroll event also re-arms (resetting the countdown), so this
+      // only keeps accumulating when the user is not scrolling.
+      armPauseTimer();
+    }, 3 * 60 * 1000); // 3 minutes 
   };
+
+  useEffect(() => {
+    armPauseTimer();
+    return () => {
+      if (pauseTimeout.current) window.clearTimeout(pauseTimeout.current);
+    };
+  }, []);
+
+  // pause the timer when the user switches tabs or minimises the window 
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      if (document.hidden) {
+        if (pauseTimeout.current) {
+          window.clearTimeout(pauseTimeout.current);
+          pauseTimeout.current = null;
+        }
+      } else {
+        armPauseTimer();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", onVisibilityChange);
+  }, []);
 
   // reset progress when doc changes
   useEffect(() => {
@@ -119,7 +149,7 @@ export default function ContentPane() {
     }
 
     lastScrollTop.current = el.scrollTop;
-    armPauseTimer(pct);
+    armPauseTimer();
   };
 
   // Fallback for cases where page-level scrolling happens instead of pane scrolling.

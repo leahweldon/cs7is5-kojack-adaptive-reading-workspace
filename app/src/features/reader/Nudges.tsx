@@ -42,8 +42,8 @@ export default function Nudges() {
     const n: Nudge = {
       kind: "encouragement",
       title: "Nice pace",
-      message: "Want a bit more guidance, or keep it as-is?",
-      reason: "You’ve been reading steadily for about a minute.",
+      message: "You're making good progress — keep it up!",
+      reason: "You've been reading steadily for about a minute.",
     };
 
     const t = window.setTimeout(() => {
@@ -71,7 +71,7 @@ export default function Nudges() {
       kind: "distraction",
       title: "Want a reset?",
       message: "Try a more guided layout to reduce rereading.",
-      reason: "You scrolled back several times and paused mid-section.",
+      reason: "You've scrolled back through this section several times.",
     };
 
     const t = window.setTimeout(() => {
@@ -115,14 +115,14 @@ export default function Nudges() {
     setActive(null);
   };
 
-  const icon = active.kind === "encouragement" ? Sparkles : Focus;
+  const Icon = active.kind === "encouragement" ? Sparkles : Focus;
 
   return (
     <div className="fixed top-20 left-1/2 -translate-x-1/2 w-full max-w-md px-4 z-40 animate-in fade-in-0 slide-in-from-top-2">
       <Card className="p-4 shadow-sm">
         <div className="flex items-start gap-3">
           <div className="mt-0.5 h-8 w-8 rounded-xl bg-accent flex items-center justify-center">
-            {icon({ className: "h-4 w-4 text-primary" })}
+            <Icon className="h-4 w-4 text-primary" />
           </div>
 
           <div className="flex-1 space-y-2">

@@ -30,11 +30,33 @@ export default function Reader() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Reading timer — paused when the tab is hidden so hidden time doesn't
+  // count toward triggers that require a minimum reading duration.
   useEffect(() => {
-    const id = window.setInterval(() => {
-      setSession((prev) => ({ ...prev, readingTimeSec: prev.readingTimeSec + 1 }));
-    }, 1000);
-    return () => window.clearInterval(id);
+    let id: number | null = null;
+
+    const start = () => {
+      if (id !== null || document.hidden) return;
+      id = window.setInterval(() => {
+        setSession((prev) => ({ ...prev, readingTimeSec: prev.readingTimeSec + 1 }));
+      }, 1000);
+    };
+
+    const stop = () => {
+      if (id !== null) {
+        window.clearInterval(id);
+        id = null;
+      }
+    };
+
+    const onVisibilityChange = () => (document.hidden ? stop() : start());
+
+    start();
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      stop();
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
   }, [setSession]);
 
   useEffect(() => {
