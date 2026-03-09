@@ -11,16 +11,27 @@ type Prompt = {
   reason: string;
 };
 
-/**
- * Returns a short human-readable label describing roughly where in the document
- * the reader currently is, based on scroll progress percentage.
- */
-function estimateSectionLabel(progressPct: number): string {
-  if (progressPct < 15) return "Introduction (0–15%)";
-  if (progressPct < 35) return `Early section (~${Math.round(progressPct)}%)`;
-  if (progressPct < 65) return `Middle section (~${Math.round(progressPct)}%)`;
-  if (progressPct < 85) return `Later section (~${Math.round(progressPct)}%)`;
-  return `Near end (~${Math.round(progressPct)}%)`;
+// (Trigger-specific feature suggestions)
+// 1. Adaptive Prompt for long pauses: Chunking is the best first suggestion
+function bestPromptForPause(preferences: Preferences): Omit<Prompt, "reason"> | null {
+  if (!preferences.chunking)
+    return { key: "chunking", text: "Break this section into smaller chunks for easier reading?" };
+  if (!preferences.bionicReading)
+    return { key: "bionicReading", text: "Enable bionic reading to help anchor focus on dense text?" };
+  if (!preferences.glossary)
+    return { key: "glossary", text: "Turn on the glossary to surface definitions inline?" };
+  return null; // all relevant features already enabled — nothing to suggest
+}
+
+// 2. Adaptive Prompt for repeated scroll-backs: Glossary is the best first suggestion
+function bestPromptForReread(preferences: Preferences): Omit<Prompt, "reason"> | null {
+  if (!preferences.glossary)
+    return { key: "glossary", text: "Turn on the glossary — unfamiliar terms may be causing re-reads?" };
+  if (!preferences.chunking)
+    return { key: "chunking", text: "Enable chunking to make passages easier to follow on re-reads?" };
+  if (!preferences.bionicReading)
+    return { key: "bionicReading", text: "Enable bionic reading to help your eyes track the text?" };
+  return null;
 }
 
 export default function AdaptivePrompt() {
@@ -34,37 +45,17 @@ export default function AdaptivePrompt() {
     bumpToggle,
     layoutLocked,
     setUserModel,
-    userModel,
   } = useApp();
 
   const [active, setActive] = useState<Prompt | null>(null);
 
-  // To prevent spamming we only show at most once per session unless user re-enables prompts
-  const shownOnceRef = useRef(false);
+  // Reread prompt shows once per session.
+  const rereadShownRef = useRef(false);
+  // Pause prompt re-triggers after 5 minutes
+  const lastPausePromptRef = useRef<number | null>(null);
+  const PAUSE_REPROMPT_MS = 5 * 60 * 1000;
 
-  const eligiblePrompt = useMemo(() => {
-    if (!preferences.chunking) {
-      return {
-        key: "chunking" as const,
-        text: "Try chunking to make this section easier to follow?",
-      };
-    }
-    if (!preferences.bionicReading) {
-      return {
-        key: "bionicReading" as const,
-        text: "Enable bionic reading for easier scanning?",
-      };
-    }
-    if (!preferences.glossary) {
-      return {
-        key: "glossary" as const,
-        text: "Turn on glossary support for tricky terms?",
-      };
-    }
-    return null;
-  }, [preferences.chunking, preferences.bionicReading, preferences.glossary]);
-
-  // Cooldown is derived from support level
+  // Minimum gap between any two consecutive prompts
   const cooldownMs = useMemo(() => {
     if (preferences.supportLevel === "low") return 25000;
     if (preferences.supportLevel === "high") return 8000;
@@ -74,47 +65,55 @@ export default function AdaptivePrompt() {
   const lastShownAtRef = useRef<number | null>(null);
 
   useEffect(() => {
-    // If prompts are disabled, reset shownOnce so re-enabling works
+    // Reset tracking refs when prompts are disabled so re-enabling starts fresh.
     if (promptsDisabled || !preferences.adaptivePrompts) {
-      shownOnceRef.current = false;
+      rereadShownRef.current = false;
+      lastPausePromptRef.current = null;
+      lastShownAtRef.current = null;
       return;
     }
 
-    if (!eligiblePrompt) return;
     if (active) return;
+    if (session.readingTimeSec < 30) return; // wait 30s before showing anything
 
     const now = Date.now();
     if (lastShownAtRef.current && now - lastShownAtRef.current < cooldownMs) return;
 
-    const pauseTriggered = session.longPauseCount >= 1;
-    const rereadTriggered = session.scrollBackCount >= 1;
+    // Fired by ContentPane after 3 min of inactivity; re-triggers every 5 min while still idle.
+    const pauseTriggered =
+      session.longPauseCount >= 1 &&
+      (lastPausePromptRef.current === null || now - lastPausePromptRef.current >= PAUSE_REPROMPT_MS);
+
+    // Fired after 2 scroll-backs - once per session (can increase num scroll backs / amount per session)
+    const rereadTriggered = session.scrollBackCount >= 2 && !rereadShownRef.current;
 
     if (!pauseTriggered && !rereadTriggered) return;
-    if (shownOnceRef.current) return;
 
-    const reason = pauseTriggered
-      ? "You paused mid-document."
-      : "You scrolled back (possible reread).";
+    // Prioritise reread
+    const triggerKey = rereadTriggered ? "reread" : "pause";
 
-    const t = window.setTimeout(() => {
-      setActive({ ...eligiblePrompt, reason });
-      shownOnceRef.current = true;
-      lastShownAtRef.current = Date.now();
+    const basePrompt =
+      triggerKey === "pause"
+        ? bestPromptForPause(preferences)
+        : bestPromptForReread(preferences);
 
-      // Log the suggestion to the Why tab, including what triggered it
-      addChange(
-        `Adaptive prompt shown: "${eligiblePrompt.text}"`,
-        "suggestion",
-        { triggerReason: reason }
-      );
-    }, 0);
+    if (!basePrompt) return; // all features already enabled — nothing to suggest
 
-    return () => window.clearTimeout(t);
+    const reason =
+      triggerKey === "pause"
+        ? "You've been on this section a while — it might be worth adjusting the layout."
+        : `You scrolled back ${session.scrollBackCount} time${session.scrollBackCount !== 1 ? "s" : ""} — possibly re-reading a tricky part.`;
+
+    setActive({ ...basePrompt, reason });
+    if (triggerKey === "pause") lastPausePromptRef.current = now;
+    else rereadShownRef.current = true;
+    lastShownAtRef.current = now;
+    addChange(`Adaptive prompt shown: "${basePrompt.text}"`, "suggestion");
   }, [
     promptsDisabled,
-    preferences.adaptivePrompts,
-    eligiblePrompt,
+    preferences,
     active,
+    session.readingTimeSec,
     session.longPauseCount,
     session.scrollBackCount,
     cooldownMs,
@@ -127,28 +126,11 @@ export default function AdaptivePrompt() {
     setPreferences({ [active.key]: true });
     bumpToggle(active.key);
 
-    // Determine where in the document the difficulty occurred
-    const sectionLabel = estimateSectionLabel(session.progressPct);
+    // Keep userModel in sync so 'Your Model' panel reflects the change.
+    if (active.key === "glossary") setUserModel({ glossaryPreference: true });
+    if (active.key === "bionicReading") setUserModel({ bionicPreference: true });
 
-    // 1) Log the accepted adaptive change to the Why tab with full context
-    addChange(
-      `${active.key} enabled via adaptive prompt. Trigger: ${active.reason} Location: ${sectionLabel}.`,
-      "auto",
-      { triggerReason: active.reason, triggerSection: sectionLabel }
-    );
-
-    // 2) Update the user model — add the section to Detected Difficulty Sections
-    //    so it shows up in the "Your Model" tab
-    const alreadyLogged = userModel.detectedDifficultySections.includes(sectionLabel);
-    if (!alreadyLogged) {
-      setUserModel({
-        detectedDifficultySections: [
-          ...userModel.detectedDifficultySections,
-          sectionLabel,
-        ],
-      });
-    }
-
+    addChange(`${active.key} enabled via adaptive prompt.`, "auto");
     setActive(null);
   };
 
