@@ -9,21 +9,23 @@ import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import Personas from "../personas/Personas";
 
 type Step = 1 | 2;
-
 type Preset = {
   id: "default" | "adhd" | "dyslexia" | "lowvision";
   title: string;
   desc: string;
   patch: Partial<Preferences>;
+  image: string;
 };
 
 const PRESETS: Preset[] = [
   {
     id: "default",
     title: "Default",
-    desc: "Standard configuration",
+    desc: "Standard settings for general use.",
+    image: "/images/persona1 .png", // Updated path
     patch: {
       readingGoal: "understand",
       supportLevel: "medium",
@@ -40,33 +42,42 @@ const PRESETS: Preset[] = [
   },
   {
     id: "adhd",
-    title: "ADHD-friendly",
-    desc: "Chunking on, prompts on, shorter line width",
+    title: "ADHD Focus",
+    desc: "Short chunks and prompts to maintain attention.",
+    image: "/images/persona2.png", // Updated path
     patch: {
       supportLevel: "high",
       chunking: true,
       adaptivePrompts: true,
       maxLineWidth: 620,
       progressIndicators: true,
+      // ... other defaults
     },
   },
   {
     id: "dyslexia",
-    title: "Dyslexia-friendly",
-    desc: "Larger text, wider spacing, bionic reading",
+    title: "Dyslexia Support",
+    desc: "Optimized for dyslexia with bionic reading and chunking.",
+    image: "/images/persona4.png", // Updated path
     patch: {
+      readingGoal: "understand",
       supportLevel: "high",
       bionicReading: true,
+      chunking: true,
+      glossary: true,
+      adaptivePrompts: true,
+      progressIndicators: true,
       fontSize: 18,
       lineSpacing: 1.9,
       maxLineWidth: 760,
-      glossary: true,
+      theme: "light",
     },
   },
   {
     id: "lowvision",
-    title: "Low Vision",
-    desc: "High contrast, large font, wide spacing",
+    title: "Visual Impairment",
+    desc: "High contrast and progress indicators.",
+    image: "/images/persona3.png", // Updated path
     patch: {
       theme: "high-contrast",
       supportLevel: "high",
@@ -75,6 +86,7 @@ const PRESETS: Preset[] = [
       maxLineWidth: 900,
       glossary: true,
       progressIndicators: true,
+      // ... other defaults
     },
   },
 ];
@@ -99,7 +111,7 @@ export default function Onboarding() {
 
   const [step, setStep] = useState<Step>(1);
   const [nameDraft, setNameDraft] = useState(userName);
-  const [selectedPreset, setSelectedPreset] = useState<Preset["id"] | null>(null);
+  const [selectedPreset, setSelectedPreset] = useState<Preset["id"]>("default");
 
   const canContinue = useMemo(() => nameDraft.trim().length > 0, [nameDraft]);
 
@@ -191,32 +203,39 @@ export default function Onboarding() {
               <div className="space-y-2">
                 <div className="text-sm font-medium">Start from a profile</div>
                 <p className="text-sm text-muted-foreground">
-                  Pick a preset to initialise sensible defaults. Everything stays fully editable.
+                  Pick a persona to initialise sensible defaults. Everything stays fully editable.
                 </p>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid gap-4 grid-cols-4">
                 {PRESETS.map((p) => (
-                  <button
+                  <Card
                     key={p.id}
-                    type="button"
-                    onClick={() => applyPreset(p)}
-                    className={`text-left rounded-xl border px-4 py-4 transition ${
+                    className={`p-6 text-center space-y-4 flex flex-col justify-between cursor-pointer ${
                       selectedPreset === p.id
-                        ? "border-primary bg-accent"
-                        : "hover:border-muted-foreground/30"
+                        ? "border-2 border-teal-400 bg-teal-50"
+                        : "border border-gray-200"
                     }`}
+                    onClick={() => applyPreset(p)}
                   >
-                    <div className="text-sm font-medium">{p.title}</div>
-                    <div className="text-sm text-muted-foreground">{p.desc}</div>
-                  </button>
+                    <div>
+                      <img
+                        src={p.image}
+                        alt={p.title}
+                        className="w-20 h-20 mx-auto rounded-full object-cover"
+                      />
+                      <div className="mt-4">
+                        <h3 className="text-lg font-medium">{p.title}</h3>
+                        <p className="text-sm text-muted-foreground">{p.desc}</p>
+                      </div>
+                    </div>
+                  </Card>
                 ))}
               </div>
             </Card>
 
             {/* Live preview */}
-            <Card className="sticky top-6 z-20 p-6 space-y-3">
-              <div className="text-sm font-medium">Preview</div>
+            <Card className="sticky top-6 z-20 p-6 space-y-3 bg-emerald-50">              <div className="text-sm font-medium">Preview</div>
               <div
                 className="rounded-xl border bg-card px-5 py-4"
                 style={{
