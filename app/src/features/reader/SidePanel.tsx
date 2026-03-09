@@ -162,23 +162,6 @@ export default function SidePanel() {
                         </Badge>
                         <div className="text-xs leading-relaxed">{e.message}</div>
                       </div>
-                      {/* Show trigger reason and section for adaptive entries */}
-                      {(e.triggerReason || e.triggerSection) && (
-                        <div className="mt-1.5 ml-1 space-y-0.5">
-                          {e.triggerReason && (
-                            <div className="text-[10px] text-muted-foreground">
-                              <span className="font-medium">Trigger: </span>
-                              {e.triggerReason}
-                            </div>
-                          )}
-                          {e.triggerSection && (
-                            <div className="text-[10px] text-muted-foreground">
-                              <span className="font-medium">Location: </span>
-                              {e.triggerSection}
-                            </div>
-                          )}
-                        </div>
-                      )}
                       <div className="text-[10px] text-muted-foreground mt-1">
                         {e.timestamp.toLocaleTimeString()}
                       </div>
