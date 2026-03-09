@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 type Concept = { name: string; confidence: number };
 
@@ -58,10 +59,10 @@ export default function Summary() {
 
   const concepts: Concept[] = useMemo(() => {
     return [
-      { name: "Key terms", confidence: 85 },
+      { name: "Key terms identified", confidence: 85 },
       { name: "Main idea", confidence: 70 },
       { name: "Supporting details", confidence: 55 },
-      { name: "Examples", confidence: 60 },
+      { name: "Examples recalled", confidence: 60 },
       { name: "Definitions", confidence: 45 },
       { name: "Implications", confidence: 35 },
     ];
@@ -175,20 +176,59 @@ export default function Summary() {
           </div>
         </Card>
 
-        <Card className="p-6 space-y-3">
-          <div className="text-sm font-medium">Recent adaptation log</div>
 
+
+        <Card className="p-6 space-y-3">
+          {/* Clickable header toggles the log open/closed */}
+          <button
+            className={`w-full flex items-center justify-between text-left ${
+              changeLog.length > 1 ? "cursor-pointer" : ""
+            }`}
+            onClick={() => {
+              if (changeLog.length > 1) setIsExpanded((prev) => !prev);
+            }}
+            aria-expanded={isExpanded}
+          >
+            <div className="text-sm font-medium">Recent adaptation log</div>
+            {changeLog.length > 1 && (
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <span>Show all</span>
+                {isExpanded
+                  ? <ChevronUp className="h-4 w-4" />
+                  : <ChevronDown className="h-4 w-4" />
+                }
+              </div>
+            )}
+          </button>
+
+          {/* Always show the latest entry or placeholder */}
           {changeLog.length === 0 ? (
             <div className="text-sm text-muted-foreground">No changes recorded.</div>
           ) : (
             <div className="flex items-start gap-3 rounded-xl border px-4 py-3">
               <Badge variant="secondary" className="text-xs">
-                {changeLog[0].type}
+                {changeLog[0]?.type || "info"}
               </Badge>
-              <div className="text-sm">{changeLog[0].message}</div>
+              <div className="text-sm">{changeLog[0]?.message || ""}</div>
+            </div>
+          )}
+
+          {/* Expanded panel showing remaining entries (skip the first one) */}
+          {isExpanded && changeLog.length > 1 && (
+            <div className="space-y-2 border-t pt-3">
+              {changeLog.slice(1).map((e) => (
+                <div key={e?.id} className="flex items-start gap-3 rounded-xl border px-4 py-3">
+                  <Badge variant="secondary" className="text-xs">
+                    {e?.type || "info"}
+                  </Badge>
+                  <div className="text-sm">{e?.message || ""}</div>
+                </div>
+              ))}
             </div>
           )}
         </Card>
+
+
 
         <Card className="p-6 space-y-3">
           <div className="text-sm font-medium">Was this helpful?</div>
@@ -197,12 +237,14 @@ export default function Summary() {
             <Button
               variant={feedback === "yes" ? "default" : "outline"}
               onClick={() => setFeedback("yes")}
+              disabled={feedbackSubmitted}
             >
               Yes
             </Button>
             <Button
               variant={feedback === "no" ? "default" : "outline"}
               onClick={() => setFeedback("no")}
+              disabled={feedbackSubmitted}
             >
               Not really
             </Button>
