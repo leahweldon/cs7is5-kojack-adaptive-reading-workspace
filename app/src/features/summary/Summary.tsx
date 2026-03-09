@@ -17,9 +17,13 @@ function formatTime(totalSec: number) {
 
 export default function Summary() {
   const navigate = useNavigate();
-  const { userName, session, changeLog, preferences, documentText, userModel } = useApp();
+  const { userName, session, changeLog, preferences, documentText, userModel, addChange } = useApp();
 
   const [feedback, setFeedback] = useState<"yes" | "no" | null>(null);
+  const [feedbackDetail, setFeedbackDetail] = useState("");
+
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
 
   useEffect(() => {
     if (!session.startTime || !documentText || documentText.trim().length === 0) {
@@ -99,6 +103,15 @@ export default function Summary() {
     URL.revokeObjectURL(url);
   };
 
+  const handleSubmitFeedback = () => {
+    const msg = `User feedback (${feedback ?? "none"}): ${feedbackDetail.trim()}`;
+    addChange(msg, "suggestion");
+    setFeedbackDetail("");
+    setFeedbackSubmitted(true);
+    // optionally collapse or clear feedback selection:
+    // setFeedback(null);
+  };
+
   return (
     <div className="min-h-screen bg-background px-4 py-12">
       <div className="mx-auto max-w-4xl space-y-6">
@@ -163,19 +176,60 @@ export default function Summary() {
         </Card>
 
         <Card className="p-6 space-y-3">
-          <div className="text-sm font-medium">Recent adaptation log</div>
+  <div
+    className={`flex items-center justify-between ${
+      changeLog.length > 1 ? "cursor-pointer" : ""
+    }`}
+    onClick={() => {
+      // only toggle if there is more than the one entry
+      if (changeLog.length > 1) setIsExpanded((prev) => !prev);
+    }}
+  >
+    <div className="text-sm font-medium">Recent adaptation log</div>
+   {changeLog.length > 1 && (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden
+    className={`h-4 w-4 text-muted-foreground transition-transform ${
+      isExpanded ? "rotate-180" : ""
+    }`}
+  >
+    <path d="M6 9l6 6 6-6" />
+  </svg>
+)}
+  </div>
 
-          {changeLog.length === 0 ? (
-            <div className="text-sm text-muted-foreground">No changes recorded.</div>
-          ) : (
-            <div className="flex items-start gap-3 rounded-xl border px-4 py-3">
-              <Badge variant="secondary" className="text-xs">
-                {changeLog[0].type}
-              </Badge>
-              <div className="text-sm">{changeLog[0].message}</div>
-            </div>
-          )}
-        </Card>
+  {/* always show the latest entry or a placeholder */}
+  {changeLog.length === 0 ? (
+    <div className="text-sm text-muted-foreground">No changes recorded.</div>
+  ) : (
+    <div className="flex items-start gap-3 rounded-xl border px-4 py-3">
+      <Badge variant="secondary" className="text-xs">
+        {changeLog[0].type}
+      </Badge>
+      <div className="text-sm">{changeLog[0].message}</div>
+    </div>
+  )}
+
+  {/* expanded panel with the full log – scrollable if it gets long */}
+  {isExpanded && changeLog.length > 1 && (
+    <div className="mt-2 max-h-40 overflow-y-auto space-y-2 border rounded-lg p-3">
+      {changeLog.map((e, idx) => (
+        <div key={idx} className="flex items-start gap-3">
+          <Badge variant="secondary" className="text-xs">
+            {e.type}
+          </Badge>
+          <div className="text-sm">{e.message}</div>
+        </div>
+      ))}
+    </div>
+  )}
+</Card>
 
         <Card className="p-6 space-y-3">
           <div className="text-sm font-medium">Was this helpful?</div>
@@ -195,9 +249,31 @@ export default function Summary() {
             </Button>
           </div>
 
-          {feedback && (
-            <div className="text-sm text-muted-foreground">
-              Thanks — feedback recorded for this demo session.
+          {feedback && !feedbackSubmitted && (
+            <>
+              {/* small text field shown once the user clicks yes/no */}
+              <div className="mt-2 flex gap-2">
+                <input
+                  type="text"
+                  className="flex-1 rounded border px-2 py-1 text-sm"
+                  placeholder="Additional comments (optional)"
+                  value={feedbackDetail}
+                  onChange={(e) => setFeedbackDetail(e.target.value)}
+                />
+                <button
+                  type="button"
+                  className="rounded bg-primary px-3 py-1 text-sm text-white hover:bg-primary/90"
+                  onClick={handleSubmitFeedback}
+                >
+                  Submit
+                </button>
+              </div>
+            </>
+          )}
+
+          {feedbackSubmitted && (
+            <div className="text-sm text-muted-foreground mt-1">
+              Thanks — feedback submitted.
             </div>
           )}
         </Card>
