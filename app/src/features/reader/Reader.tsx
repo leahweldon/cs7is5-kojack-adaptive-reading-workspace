@@ -1,9 +1,10 @@
 import { useApp } from "@/shared/state/AppContext";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 import AdaptivePrompt from "./AdaptivePrompt";
@@ -14,6 +15,7 @@ import SidePanel from "./SidePanel";
 export default function Reader() {
   const navigate = useNavigate();
   const { userName, preferences, session, setSession, documentText } = useApp();
+  const [desktopPanelOpen, setDesktopPanelOpen] = useState(true);
 
   useEffect(() => {
     if (!documentText || documentText.trim().length === 0) {
@@ -28,11 +30,33 @@ export default function Reader() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Reading timer — paused when the tab is hidden so hidden time doesn't
+  // count toward triggers that require a minimum reading duration.
   useEffect(() => {
-    const id = window.setInterval(() => {
-      setSession((prev) => ({ ...prev, readingTimeSec: prev.readingTimeSec + 1 }));
-    }, 1000);
-    return () => window.clearInterval(id);
+    let id: number | null = null;
+
+    const start = () => {
+      if (id !== null || document.hidden) return;
+      id = window.setInterval(() => {
+        setSession((prev) => ({ ...prev, readingTimeSec: prev.readingTimeSec + 1 }));
+      }, 1000);
+    };
+
+    const stop = () => {
+      if (id !== null) {
+        window.clearInterval(id);
+        id = null;
+      }
+    };
+
+    const onVisibilityChange = () => (document.hidden ? stop() : start());
+
+    start();
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      stop();
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
   }, [setSession]);
 
   useEffect(() => {
@@ -49,8 +73,13 @@ export default function Reader() {
     return firstLine.length > 44 ? firstLine.slice(0, 44) + "…" : firstLine;
   }, [documentText]);
 
+  const progress = useMemo(() => {
+    const pct = Number.isFinite(session.progressPct) ? session.progressPct : 0;
+    return Math.min(100, Math.max(0, pct));
+  }, [session.progressPct]);
+
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="h-screen overflow-hidden bg-background flex flex-col">
       <header className="h-14 border-b bg-background flex items-center justify-between px-4">
         <div className="flex items-center gap-3 min-w-0">
           <img src="/logo.png" alt="Clarity Layer" className="h-6 w-auto object-contain" />
@@ -77,6 +106,15 @@ export default function Reader() {
             Documents
           </Button>
 
+          <Button
+            size="sm"
+            variant="outline"
+            className="hidden md:inline-flex"
+            onClick={() => setDesktopPanelOpen((prev) => !prev)}
+          >
+            {desktopPanelOpen ? "Hide controls" : "Show controls"}
+          </Button>
+
           <div className="md:hidden">
             <Sheet>
               <SheetTrigger asChild>
@@ -96,17 +134,34 @@ export default function Reader() {
         </div>
       </header>
 
-      {/* nudges */}
       <Nudges />
 
-      <main className="flex flex-1 overflow-hidden">
-        <section className="flex-1 overflow-hidden">
+      {preferences.progressIndicators && (
+        <div
+          className={`fixed top-14 left-0 right-0 ${
+            desktopPanelOpen ? "md:right-[360px]" : "md:right-0"
+          } z-30 bg-background/95 backdrop-blur border-b px-6 py-3`}
+        >
+          <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
+            <span>Reading progress</span>
+            <span>{Math.round(progress)}%</span>
+          </div>
+          <Progress value={progress} />
+        </div>
+      )}
+
+      <main className="flex flex-1 min-h-0 overflow-hidden">
+        {/* LEFT COLUMN */}
+        <section className="flex-1 min-h-0 overflow-hidden relative">
           <ContentPane />
         </section>
 
-        <aside className="w-[360px] border-l hidden md:block overflow-hidden">
-          <SidePanel />
-        </aside>
+        {/* RIGHT COLUMN */}
+        {desktopPanelOpen && (
+          <aside className="w-[360px] border-l hidden md:block min-h-0 overflow-hidden">
+            <SidePanel />
+          </aside>
+        )}
       </main>
 
       <AdaptivePrompt />

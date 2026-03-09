@@ -1,4 +1,4 @@
-import { Preferences, ReadingGoal, SupportLevel, useApp } from "@/shared/state/AppContext";
+import { Preferences, ReadingGoal, useApp } from "@/shared/state/AppContext";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -32,7 +32,6 @@ const PRESETS: Preset[] = [
       glossary: true,
       adaptivePrompts: true,
       progressIndicators: true,
-      promptFrequency: "medium",
       fontSize: 16,
       lineSpacing: 1.6,
       maxLineWidth: 720,
@@ -47,7 +46,6 @@ const PRESETS: Preset[] = [
       supportLevel: "high",
       chunking: true,
       adaptivePrompts: true,
-      promptFrequency: "high",
       maxLineWidth: 620,
       progressIndicators: true,
     },
@@ -217,7 +215,7 @@ export default function Onboarding() {
             </Card>
 
             {/* Live preview */}
-            <Card className="p-6 space-y-3">
+            <Card className="sticky top-6 z-20 p-6 space-y-3">
               <div className="text-sm font-medium">Preview</div>
               <div
                 className="rounded-xl border bg-card px-5 py-4"
@@ -254,21 +252,6 @@ export default function Onboarding() {
                   <TabsTrigger value="skim">Skim</TabsTrigger>
                   <TabsTrigger value="understand">Understand</TabsTrigger>
                   <TabsTrigger value="study">Study</TabsTrigger>
-                </TabsList>
-              </Tabs>
-            </Card>
-
-            {/* Support level */}
-            <Card className="p-6 space-y-4">
-              <div className="text-sm font-medium">Support level</div>
-              <Tabs
-                value={preferences.supportLevel}
-                onValueChange={(v) => setPreferences({ supportLevel: v as SupportLevel })}
-              >
-                <TabsList className="grid grid-cols-3">
-                  <TabsTrigger value="low">Low</TabsTrigger>
-                  <TabsTrigger value="medium">Medium</TabsTrigger>
-                  <TabsTrigger value="high">High</TabsTrigger>
                 </TabsList>
               </Tabs>
             </Card>

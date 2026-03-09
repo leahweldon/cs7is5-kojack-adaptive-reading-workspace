@@ -43,11 +43,19 @@ export type ChangeLogEntry = {
   type: ChangeType;
   message: string;
   timestamp: Date;
+  /** Populated when an adaptive prompt fires — identifies where the difficulty occurred */
+  triggerSection?: string;
+  /** The behaviour that triggered this entry (e.g. "long pause", "rereading") */
+  triggerReason?: string;
 };
 
 export type SessionState = {
   startTime: Date | null;
   readingTimeSec: number;
+
+  // This drives the progress bar in Reader
+  progressPct: number;
+
   scrollBackCount: number;
   longPauseCount: number;
 
@@ -70,7 +78,7 @@ type AppState = {
   setDocumentText: (v: string) => void;
 
   changeLog: ChangeLogEntry[];
-  addChange: (message: string, type: ChangeType) => void;
+  addChange: (message: string, type: ChangeType, extras?: { triggerSection?: string; triggerReason?: string }) => void;
   clearChangeLog: () => void;
 
   session: SessionState;
@@ -124,6 +132,7 @@ const defaultUserModel: UserModel = {
 const defaultSession: SessionState = {
   startTime: null,
   readingTimeSec: 0,
+  progressPct: 0,
   scrollBackCount: 0,
   longPauseCount: 0,
   sessionMode: "study",
@@ -155,8 +164,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const [preferences, setPreferencesState] = useState<Preferences>(() => {
     const stored = safeLoad<Partial<Preferences>>(STORAGE_PREFS);
-
-    // merge stored prefs with defaults so adding new fields doesn't break old storage
     return stored ? { ...defaultPreferences, ...stored } : defaultPreferences;
   });
 
@@ -194,10 +201,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setUserModelState((prev) => ({ ...prev, ...patch }));
   };
 
-  const addChange = (message: string, type: ChangeType) => {
+  const addChange = (message: string, type: ChangeType, extras?: { triggerSection?: string; triggerReason?: string }) => {
     idRef.current += 1;
     setChangeLog((prev) => [
-      { id: String(idRef.current), type, message, timestamp: new Date() },
+      { id: String(idRef.current), type, message, timestamp: new Date(), ...extras },
       ...prev,
     ]);
   };

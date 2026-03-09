@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 type Concept = { name: string; confidence: number };
 
@@ -176,60 +177,62 @@ export default function Summary() {
         </Card>
 
         <Card className="p-6 space-y-3">
-  <div
-    className={`flex items-center justify-between ${
-      changeLog.length > 1 ? "cursor-pointer" : ""
-    }`}
-    onClick={() => {
-      // only toggle if there is more than the one entry
-      if (changeLog.length > 1) setIsExpanded((prev) => !prev);
-    }}
-  >
-    <div className="text-sm font-medium">Recent adaptation log</div>
-   {changeLog.length > 1 && (
-  <svg
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth={2}
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    aria-hidden
-    className={`h-4 w-4 text-muted-foreground transition-transform ${
-      isExpanded ? "rotate-180" : ""
-    }`}
-  >
-    <path d="M6 9l6 6 6-6" />
-  </svg>
-)}
-  </div>
+          {/* Clickable header toggles the log open/closed */}
+          <button
+            className="w-full flex items-center justify-between text-left"
+            onClick={() => setAdaptationLogExpanded((prev) => !prev)}
+            aria-expanded={adaptationLogExpanded}
+          >
+            <div className="text-sm font-medium">Recent adaptation log</div>
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              <span>{changeLog.length} {changeLog.length === 1 ? "entry" : "entries"}</span>
+              {adaptationLogExpanded
+                ? <ChevronUp className="h-4 w-4" />
+                : <ChevronDown className="h-4 w-4" />
+              }
+            </div>
+          </button>
 
-  {/* always show the latest entry or a placeholder */}
-  {changeLog.length === 0 ? (
-    <div className="text-sm text-muted-foreground">No changes recorded.</div>
-  ) : (
-    <div className="flex items-start gap-3 rounded-xl border px-4 py-3">
-      <Badge variant="secondary" className="text-xs">
-        {changeLog[0].type}
-      </Badge>
-      <div className="text-sm">{changeLog[0].message}</div>
-    </div>
-  )}
+          {!adaptationLogExpanded && (
+            <div className="text-xs text-muted-foreground">
+              {changeLog.length === 0
+                ? "No changes recorded."
+                : "Click above to expand and view the full adaptation history."}
+            </div>
+          )}
 
-  {/* expanded panel with the full log – scrollable if it gets long */}
-  {isExpanded && changeLog.length > 1 && (
-    <div className="mt-2 max-h-40 overflow-y-auto space-y-2 border rounded-lg p-3">
-      {changeLog.map((e, idx) => (
-        <div key={idx} className="flex items-start gap-3">
-          <Badge variant="secondary" className="text-xs">
-            {e.type}
-          </Badge>
-          <div className="text-sm">{e.message}</div>
-        </div>
-      ))}
-    </div>
-  )}
-</Card>
+          {adaptationLogExpanded && (
+            <>
+              {changeLog.length === 0 ? (
+                <div className="text-sm text-muted-foreground">No changes recorded.</div>
+              ) : (
+                <div className="space-y-2">
+                  {changeLog.map((e) => (
+                    <div key={e.id} className="flex items-start gap-3 rounded-xl border px-4 py-3">
+                      <Badge variant={
+                        e.type === "auto" ? "default" : e.type === "suggestion" ? "secondary" : "outline"
+                      } className="text-xs shrink-0">
+                        {e.type}
+                      </Badge>
+                      <div className="space-y-0.5 min-w-0">
+                        <div className="text-sm">{e.message}</div>
+                        {(e.triggerReason || e.triggerSection) && (
+                          <div className="text-xs text-muted-foreground space-y-0.5">
+                            {e.triggerReason && <div><span className="font-medium">Trigger:</span> {e.triggerReason}</div>}
+                            {e.triggerSection && <div><span className="font-medium">Location:</span> {e.triggerSection}</div>}
+                          </div>
+                        )}
+                        <div className="text-[10px] text-muted-foreground">
+                          {e.timestamp.toLocaleTimeString()}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </Card>
 
         <Card className="p-6 space-y-3">
           <div className="text-sm font-medium">Was this helpful?</div>

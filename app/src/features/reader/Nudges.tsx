@@ -21,11 +21,12 @@ export default function Nudges() {
   const lastShownAtRef = useRef<number | null>(null);
   const encouragementShownRef = useRef(false);
 
+  // promptFrequency removed — cooldown is now derived from support level (simple + scrutable)
   const cooldownMs = useMemo(() => {
-    if (preferences.promptFrequency === "low") return 30000;
-    if (preferences.promptFrequency === "high") return 10000;
+    if (preferences.supportLevel === "low") return 30000;
+    if (preferences.supportLevel === "high") return 10000;
     return 18000;
-  }, [preferences.promptFrequency]);
+  }, [preferences.supportLevel]);
 
   // Encouragement nudge: after ~60 seconds of reading time (once per session)
   useEffect(() => {
@@ -41,8 +42,8 @@ export default function Nudges() {
     const n: Nudge = {
       kind: "encouragement",
       title: "Nice pace",
-      message: "Want a bit more guidance, or keep it as-is?",
-      reason: "You’ve been reading steadily for about a minute.",
+      message: "You're making good progress — keep it up!",
+      reason: "You've been reading steadily for about a minute.",
     };
 
     const t = window.setTimeout(() => {
@@ -70,7 +71,7 @@ export default function Nudges() {
       kind: "distraction",
       title: "Want a reset?",
       message: "Try a more guided layout to reduce rereading.",
-      reason: "You scrolled back several times and paused mid-section.",
+      reason: "You've scrolled back through this section several times.",
     };
 
     const t = window.setTimeout(() => {
@@ -114,14 +115,14 @@ export default function Nudges() {
     setActive(null);
   };
 
-  const icon = active.kind === "encouragement" ? Sparkles : Focus;
+  const Icon = active.kind === "encouragement" ? Sparkles : Focus;
 
   return (
     <div className="fixed top-20 left-1/2 -translate-x-1/2 w-full max-w-md px-4 z-40 animate-in fade-in-0 slide-in-from-top-2">
       <Card className="p-4 shadow-sm">
         <div className="flex items-start gap-3">
           <div className="mt-0.5 h-8 w-8 rounded-xl bg-accent flex items-center justify-center">
-            {icon({ className: "h-4 w-4 text-primary" })}
+            <Icon className="h-4 w-4 text-primary" />
           </div>
 
           <div className="flex-1 space-y-2">
@@ -133,7 +134,6 @@ export default function Nudges() {
             <div className="text-sm text-muted-foreground">{active.message}</div>
 
             <div className="flex gap-2 flex-wrap pt-1">
-              {/* Only show “enable” actions if they’d actually change something */}
               {!preferences.chunking && (
                 <Button size="sm" onClick={enableChunking}>
                   Enable chunking
