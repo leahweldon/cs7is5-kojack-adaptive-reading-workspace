@@ -43,10 +43,6 @@ export type ChangeLogEntry = {
   type: ChangeType;
   message: string;
   timestamp: Date;
-  /** Populated when an adaptive prompt fires — identifies where the difficulty occurred */
-  triggerSection?: string;
-  /** The behaviour that triggered this entry (e.g. "long pause", "rereading") */
-  triggerReason?: string;
 };
 
 export type SessionState = {
@@ -78,7 +74,7 @@ type AppState = {
   setDocumentText: (v: string) => void;
 
   changeLog: ChangeLogEntry[];
-  addChange: (message: string, type: ChangeType, extras?: { triggerSection?: string; triggerReason?: string }) => void;
+  addChange: (message: string, type: ChangeType) => void;
   clearChangeLog: () => void;
 
   session: SessionState;
@@ -201,10 +197,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setUserModelState((prev) => ({ ...prev, ...patch }));
   };
 
-  const addChange = (message: string, type: ChangeType, extras?: { triggerSection?: string; triggerReason?: string }) => {
+  const addChange = (message: string, type: ChangeType) => {
     idRef.current += 1;
     setChangeLog((prev) => [
-      { id: String(idRef.current), type, message, timestamp: new Date(), ...extras },
+      { id: String(idRef.current), type, message, timestamp: new Date() },
       ...prev,
     ]);
   };

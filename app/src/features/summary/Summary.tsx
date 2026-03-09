@@ -6,7 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { ChevronDown, ChevronUp } from "lucide-react";
 
 type Concept = { name: string; confidence: number };
 
@@ -21,7 +20,6 @@ export default function Summary() {
   const { userName, session, changeLog, preferences, documentText, userModel } = useApp();
 
   const [feedback, setFeedback] = useState<"yes" | "no" | null>(null);
-  const [adaptationLogExpanded, setAdaptationLogExpanded] = useState(false);
 
   useEffect(() => {
     if (!session.startTime || !documentText || documentText.trim().length === 0) {
@@ -165,60 +163,17 @@ export default function Summary() {
         </Card>
 
         <Card className="p-6 space-y-3">
-          {/* Clickable header toggles the log open/closed */}
-          <button
-            className="w-full flex items-center justify-between text-left"
-            onClick={() => setAdaptationLogExpanded((prev) => !prev)}
-            aria-expanded={adaptationLogExpanded}
-          >
-            <div className="text-sm font-medium">Recent adaptation log</div>
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <span>{changeLog.length} {changeLog.length === 1 ? "entry" : "entries"}</span>
-              {adaptationLogExpanded
-                ? <ChevronUp className="h-4 w-4" />
-                : <ChevronDown className="h-4 w-4" />
-              }
-            </div>
-          </button>
+          <div className="text-sm font-medium">Recent adaptation log</div>
 
-          {!adaptationLogExpanded && (
-            <div className="text-xs text-muted-foreground">
-              {changeLog.length === 0
-                ? "No changes recorded."
-                : "Click above to expand and view the full adaptation history."}
+          {changeLog.length === 0 ? (
+            <div className="text-sm text-muted-foreground">No changes recorded.</div>
+          ) : (
+            <div className="flex items-start gap-3 rounded-xl border px-4 py-3">
+              <Badge variant="secondary" className="text-xs">
+                {changeLog[0].type}
+              </Badge>
+              <div className="text-sm">{changeLog[0].message}</div>
             </div>
-          )}
-
-          {adaptationLogExpanded && (
-            <>
-              {changeLog.length === 0 ? (
-                <div className="text-sm text-muted-foreground">No changes recorded.</div>
-              ) : (
-                <div className="space-y-2">
-                  {changeLog.map((e) => (
-                    <div key={e.id} className="flex items-start gap-3 rounded-xl border px-4 py-3">
-                      <Badge variant={
-                        e.type === "auto" ? "default" : e.type === "suggestion" ? "secondary" : "outline"
-                      } className="text-xs shrink-0">
-                        {e.type}
-                      </Badge>
-                      <div className="space-y-0.5 min-w-0">
-                        <div className="text-sm">{e.message}</div>
-                        {(e.triggerReason || e.triggerSection) && (
-                          <div className="text-xs text-muted-foreground space-y-0.5">
-                            {e.triggerReason && <div><span className="font-medium">Trigger:</span> {e.triggerReason}</div>}
-                            {e.triggerSection && <div><span className="font-medium">Location:</span> {e.triggerSection}</div>}
-                          </div>
-                        )}
-                        <div className="text-[10px] text-muted-foreground">
-                          {e.timestamp.toLocaleTimeString()}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </>
           )}
         </Card>
 
