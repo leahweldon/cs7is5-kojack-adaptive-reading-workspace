@@ -1,4 +1,5 @@
 import { useApp } from "@/shared/state/AppContext";
+import type { Preferences } from "@/shared/state/AppContext";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
@@ -7,15 +8,7 @@ type Persona = {
   name: string;
   description: string;
   image: string; // path to image, e.g., "/images/dyslexia.png"
-  preferences: {
-    bionicReading: boolean;
-    chunking: boolean;
-    glossary: boolean;
-    adaptivePrompts: boolean;
-    progressIndicators: boolean;
-    supportLevel: "low" | "medium" | "high";
-    readingGoal: "comprehension" | "speed" | "casual";
-  };
+  preferences: Partial<Preferences>;
 };
 
 const personas: Persona[] = [
@@ -31,7 +24,7 @@ const personas: Persona[] = [
       adaptivePrompts: true,
       progressIndicators: true,
       supportLevel: "high",
-      readingGoal: "comprehension",
+      readingGoal: "understand",
     },
   },
   {
@@ -46,7 +39,7 @@ const personas: Persona[] = [
       adaptivePrompts: true,
       progressIndicators: true,
       supportLevel: "medium",
-      readingGoal: "speed",
+      readingGoal: "skim",
     },
   },
   {
@@ -61,7 +54,7 @@ const personas: Persona[] = [
       adaptivePrompts: false,
       progressIndicators: true,
       supportLevel: "high",
-      readingGoal: "comprehension",
+      readingGoal: "understand",
     },
   },
   {
@@ -76,7 +69,7 @@ const personas: Persona[] = [
       adaptivePrompts: true,
       progressIndicators: true,
       supportLevel: "low",
-      readingGoal: "casual",
+      readingGoal: "study",
     },
   },
 ];
