@@ -2,6 +2,7 @@ import {
   Preferences,
   SessionMode,
   SupportLevel,
+  ThemeMode,
   useApp,
 } from "@/shared/state/AppContext";
 
@@ -280,6 +281,33 @@ export default function SidePanel() {
                 format={(v) => `${v}px`}
                 onChange={(v) => setPreferences({ maxLineWidth: v })}
               />
+
+              <div className="space-y-3 rounded-xl border px-4 py-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Theme</span>
+                  <span className="text-sm text-muted-foreground capitalize">
+                    {preferences.theme === "high-contrast"
+                      ? "High contrast"
+                      : preferences.theme}
+                  </span>
+                </div>
+                <Tabs
+                  value={preferences.theme}
+                  onValueChange={(v) => {
+                    const theme = v as ThemeMode;
+                    setPreferences({ theme });
+                    addChange(`Theme changed to ${theme}.`, "info");
+                  }}
+                >
+                  <TabsList className="grid grid-cols-3">
+                    <TabsTrigger value="light" className="text-xs">Light</TabsTrigger>
+                    <TabsTrigger value="dark" className="text-xs">Dark</TabsTrigger>
+                    <TabsTrigger value="high-contrast" className="text-xs">
+                      Contrast
+                    </TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              </div>
             </Card>
 
             <Card className="p-4 space-y-3">

@@ -60,13 +60,6 @@ export default function Reader() {
     };
   }, [setSession]);
 
-  useEffect(() => {
-    const root = document.documentElement;
-    root.classList.remove("dark", "high-contrast");
-    if (preferences.theme === "dark") root.classList.add("dark");
-    if (preferences.theme === "high-contrast") root.classList.add("high-contrast");
-  }, [preferences.theme]);
-
   const mins = useMemo(() => Math.floor(session.readingTimeSec / 60), [session.readingTimeSec]);
 
   const docTitle = useMemo(() => {

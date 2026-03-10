@@ -1,4 +1,4 @@
-import { Preferences, ReadingGoal, useApp } from "@/shared/state/AppContext";
+import { Preferences, ReadingGoal, ThemeMode, useApp } from "@/shared/state/AppContext";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -213,8 +213,8 @@ export default function Onboarding() {
                     key={p.id}
                     className={`p-6 text-center space-y-4 flex flex-col justify-between cursor-pointer ${
                       selectedPreset === p.id
-                        ? "border-2 border-teal-400 bg-teal-50"
-                        : "border border-gray-200"
+                        ? "border-2 border-primary bg-accent"
+                        : "border border-border bg-card"
                     }`}
                     onClick={() => applyPreset(p)}
                   >
@@ -235,7 +235,8 @@ export default function Onboarding() {
             </Card>
 
             {/* Live preview */}
-            <Card className="sticky top-6 z-20 p-6 space-y-3 bg-emerald-50">              <div className="text-sm font-medium">Preview</div>
+            <Card className="sticky top-6 z-20 p-6 space-y-3 bg-accent/40">
+              <div className="text-sm font-medium">Preview</div>
               <div
                 className="rounded-xl border bg-card px-5 py-4"
                 style={{
@@ -319,6 +320,20 @@ export default function Onboarding() {
                 format={(v) => `${v}px`}
                 onChange={(v) => setPreferences({ maxLineWidth: v })}
               />
+
+              <div className="space-y-3 rounded-lg border px-4 py-4">
+                <div className="text-sm font-medium">Theme</div>
+                <Tabs
+                  value={preferences.theme}
+                  onValueChange={(v) => setPreferences({ theme: v as ThemeMode })}
+                >
+                  <TabsList className="grid grid-cols-3">
+                    <TabsTrigger value="light">Light</TabsTrigger>
+                    <TabsTrigger value="dark">Dark</TabsTrigger>
+                    <TabsTrigger value="high-contrast">High contrast</TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              </div>
 
               <div className="flex justify-end pt-2">
                 <Button onClick={finishSetup}>Continue to documents</Button>
