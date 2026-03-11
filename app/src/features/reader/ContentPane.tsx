@@ -48,16 +48,19 @@ export default function ContentPane() {
   }, [paragraphs, preferences.chunking]);
 
   const markDifficultyAt = (index: number) => {
-    const safeIndex = Math.max(0, Math.min(index, Math.max(0, chunks.length - 1)));
-    const label = `Section ${safeIndex + 1}`;
-    if (userModel.detectedDifficultySections.includes(label)) return;
+  const safeIndex = Math.max(0, Math.min(index, Math.max(0, chunks.length - 1)));
+  const label = `Section ${safeIndex + 1}`;
 
-    setUserModel({
-      detectedDifficultySections: [...userModel.detectedDifficultySections, label],
-    });
+  // Only log and update if this section hasn't been recorded before
+  if (userModel.detectedDifficultySections.includes(label)) return;
 
-    addChange(`You seemed to struggle around ${label}.`, "info");
-  };
+  setUserModel({
+    detectedDifficultySections: [...userModel.detectedDifficultySections, label],
+  });
+
+  // Only add to Why tab log once per section
+  addChange(`You seemed to struggle around ${label}.`, "info");
+};
 
   const armPauseTimer = () => {
     if (pauseTimeout.current) window.clearTimeout(pauseTimeout.current);
@@ -138,8 +141,10 @@ export default function ContentPane() {
     const diff = el.scrollTop - lastScrollTop.current;
 
     if (diff < -60) {
-      bumpScrollBack();
-      addChange("Scroll-back detected (possible reread).", "info");
+  bumpScrollBack();
+  if (session.scrollBackCount === 0) {
+    addChange("Scroll-back detected (possible reread).", "info");
+  }
 
       const sectionIndex = Math.min(
         Math.floor((el.scrollTop / Math.max(1, el.scrollHeight)) * chunks.length),
