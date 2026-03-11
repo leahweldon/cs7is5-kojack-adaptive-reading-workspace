@@ -3,10 +3,16 @@ import { DocumentRecord, DocumentsApi, DocumentWithText } from "./documents";
 type StoredDoc = DocumentWithText;
 
 const STORAGE_KEY = "claritylayer:docs:v1";
+const STORAGE_CURRENT_USER = "claritylayer:currentUserId:v1";
+
+function getDocStorageKey() {
+  const userId = localStorage.getItem(STORAGE_CURRENT_USER) ?? "anonymous";
+  return `${STORAGE_KEY}:${userId}`;
+}
 
 function loadAll(): StoredDoc[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(getDocStorageKey());
     if (!raw) return [];
     const parsed = JSON.parse(raw) as StoredDoc[];
     return Array.isArray(parsed) ? parsed : [];
@@ -16,7 +22,7 @@ function loadAll(): StoredDoc[] {
 }
 
 function saveAll(docs: StoredDoc[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(docs));
+  localStorage.setItem(getDocStorageKey(), JSON.stringify(docs));
 }
 
 function formatTitle(text: string) {
