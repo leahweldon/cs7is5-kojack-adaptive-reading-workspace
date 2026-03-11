@@ -1,5 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useEffect, useRef, useState } from "react";
+import { useUser } from "@clerk/clerk-react";
 
 export type ReadingGoal = "skim" | "understand" | "study";
 export type SupportLevel = "low" | "medium" | "high";
@@ -67,6 +68,9 @@ type AppState = {
   preferences: Preferences;
   setPreferences: (patch: Partial<Preferences>) => void;
 
+  hasCompletedOnboarding: boolean;
+  setHasCompletedOnboarding: (v: boolean) => void;
+
   userModel: UserModel;
   setUserModel: (patch: Partial<UserModel>) => void;
 
@@ -95,6 +99,12 @@ type AppState = {
 
 const STORAGE_USER = "claritylayer:userName:v1";
 const STORAGE_PREFS = "claritylayer:preferences:v1";
+const STORAGE_CURRENT_USER = "claritylayer:currentUserId:v1";
+
+function makeStorageKey(prefix: string, userId: string) {
+  if (!userId) return `${prefix}:anonymous`;
+  return `${prefix}:${userId}`;
+}
 
 const defaultPreferences: Preferences = {
   readingGoal: "understand",
@@ -156,12 +166,12 @@ function safeSave(key: string, value: unknown) {
 const Ctx = createContext<AppState | null>(null);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
-  const [userName, setUserNameState] = useState(() => safeLoad<string>(STORAGE_USER) ?? "");
+  const { user } = useUser();
+  const userId = user?.id ?? "anonymous";
 
-  const [preferences, setPreferencesState] = useState<Preferences>(() => {
-    const stored = safeLoad<Partial<Preferences>>(STORAGE_PREFS);
-    return stored ? { ...defaultPreferences, ...stored } : defaultPreferences;
-  });
+  const [userName, setUserNameState] = useState("");
+
+  const [preferences, setPreferencesState] = useState<Preferences>(defaultPreferences);
 
   const [userModel, setUserModelState] = useState<UserModel>(() => ({
     ...defaultUserModel,
@@ -180,12 +190,32 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const idRef = useRef(0);
 
   useEffect(() => {
-    safeSave(STORAGE_USER, userName);
-  }, [userName]);
+    localStorage.setItem(STORAGE_CURRENT_USER, userId);
+    const stored = safeLoad<string>(makeStorageKey(STORAGE_USER, userId));
+    const pref = safeLoad<Partial<Preferences>>(makeStorageKey(STORAGE_PREFS, userId));
+    const loadedPreferences = pref ? { ...defaultPreferences, ...pref } : defaultPreferences;
+
+    setUserNameState(stored ?? "");
+    setPreferencesState(loadedPreferences);
+    setUserModelState({
+      ...defaultUserModel,
+      supportLevel: loadedPreferences.supportLevel,
+      glossaryPreference: loadedPreferences.glossary,
+      bionicPreference: loadedPreferences.bionicReading,
+    });
+  }, [userId]);
 
   useEffect(() => {
-    safeSave(STORAGE_PREFS, preferences);
-  }, [preferences]);
+    if (userId) {
+      safeSave(makeStorageKey(STORAGE_USER, userId), userName);
+    }
+  }, [userId, userName]);
+
+  useEffect(() => {
+    if (userId) {
+      safeSave(makeStorageKey(STORAGE_PREFS, userId), preferences);
+    }
+  }, [userId, preferences]);
 
   const setUserName = (v: string) => setUserNameState(v);
 

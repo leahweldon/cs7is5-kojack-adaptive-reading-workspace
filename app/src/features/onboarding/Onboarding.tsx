@@ -117,11 +117,11 @@ export default function Onboarding() {
 
   const goToStep2 = () => {
     if (!canContinue) return;
-    setUserName(nameDraft.trim());
     setStep(2);
   };
 
   const finishSetup = () => {
+    setUserName(nameDraft.trim());
     resetSession();
     navigate("/documents");
   };

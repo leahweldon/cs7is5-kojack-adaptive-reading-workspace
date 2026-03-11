@@ -1,6 +1,7 @@
 import { useApp } from "@/shared/state/AppContext";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import * as pdfjsLib from "pdfjs-dist";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,6 +10,9 @@ import { Textarea } from "@/components/ui/textarea";
 
 import type { DocumentRecord } from "@/shared/api/documents";
 import { documentsLocalApi } from "@/shared/api/documents.local";
+
+// Set up pdf.js worker
+pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
 
 const SAMPLE_TEXT = `The neurobiology of reading explains how the brain learns to recognise written symbols.
 
@@ -22,8 +26,11 @@ export default function DocumentUpload() {
 
   const [text, setText] = useState("");
   const [pdfLoaded, setPdfLoaded] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const [pdfError, setPdfError] = useState<string | null>(null);
 
   const [clipboardError, setClipboardError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [docs, setDocs] = useState<DocumentRecord[]>([]);
   const [loadingDocs, setLoadingDocs] = useState(true);
@@ -33,6 +40,75 @@ export default function DocumentUpload() {
     const list = await documentsLocalApi.list();
     setDocs(list);
     setLoadingDocs(false);
+  };
+
+  const parsePdf = async (file: File) => {
+    setPdfLoading(true);
+    setPdfError(null);
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      
+      try {
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        
+        let extractedText = "";
+        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+          try {
+            const page = await pdf.getPage(pageNum);
+            const textContent = await page.getTextContent();
+            const pageText = textContent.items
+              .map((item: any) => item.str || "")
+              .join(" ");
+            if (pageText.trim()) {
+              extractedText += pageText + "\n";
+            }
+          } catch (pageError) {
+            console.warn(`Error extracting text from page ${pageNum}:`, pageError);
+          }
+        }
+
+        if (!extractedText.trim()) {
+          setPdfError("No text could be extracted from this PDF. It may be image-based or encrypted.");
+          setPdfLoading(false);
+          return;
+        }
+
+        setText(extractedText.trim());
+        setPdfLoaded(true);
+        setPdfLoading(false);
+      } catch (pdfError: any) {
+        console.error("PDF parsing error:", pdfError);
+        
+        let errorMessage = "Failed to parse PDF. ";
+        if (pdfError.message?.includes("worker")) {
+          errorMessage += "Try reloading the page. ";
+        }
+        if (pdfError.message?.includes("encrypted")) {
+          errorMessage += "The PDF may be password-protected.";
+        } else {
+          errorMessage += "Please try another file.";
+        }
+        
+        setPdfError(errorMessage);
+        setPdfLoading(false);
+      }
+    } catch (fileError) {
+      console.error("File reading error:", fileError);
+      setPdfError("Could not read the file. Please try another PDF.");
+      setPdfLoading(false);
+    }
+  };
+
+  const handlePdfUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    
+    if (file.type !== "application/pdf") {
+      setPdfError("Please select a valid PDF file.");
+      return;
+    }
+
+    parsePdf(file);
   };
 
   useEffect(() => {
@@ -103,7 +179,7 @@ export default function DocumentUpload() {
           <Badge variant="secondary">Documents</Badge>
           <h1 className="text-2xl font-semibold">Add your reading material</h1>
           <p className="text-sm text-muted-foreground">
-            Paste text or simulate a PDF upload. Recent documents appear below.
+            Upload a PDF, paste text, or use a sample. Recent documents appear below.
           </p>
         </div>
 
@@ -111,15 +187,31 @@ export default function DocumentUpload() {
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <div className="font-medium">Quick start</div>
             <div className="flex gap-2">
+              <Button variant="outline" onClick={() => navigate("/settings")}>Settings</Button>
+              <Button 
+                variant="outline" 
+                onClick={() => fileInputRef.current?.click()}
+                disabled={pdfLoading}
+              >
+                {pdfLoading ? "Processing PDF..." : "Upload PDF"}
+              </Button>
               <Button variant="outline" onClick={pasteFromClipboard}>
                 Paste from clipboard
               </Button>
               <Button variant="outline" onClick={simulatePdf}>
-                Simulate PDF upload
+                Use sample text
               </Button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,application/pdf"
+                onChange={handlePdfUpload}
+                className="hidden"
+              />
             </div>
           </div>
 
+          {pdfError && <div className="text-sm text-destructive">{pdfError}</div>}
           {clipboardError && <div className="text-sm text-destructive">{clipboardError}</div>}
 
           <Textarea
