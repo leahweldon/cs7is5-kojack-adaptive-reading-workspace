@@ -145,7 +145,7 @@ export default function SidePanel() {
                 <div className="text-sm text-muted-foreground">No changes yet.</div>
               ) : (
                 <div className="space-y-2">
-                  {changeLog.slice(0, 14).map((e) => (
+                  {changeLog   .filter((e, index, arr) => {     if (e.type === "auto" || e.type === "suggestion") return true;     if (e.message.startsWith("Scroll-back detected")) {       const prevSameIndex = arr.findIndex(         (prev, i) => i > index && prev.message.startsWith("Scroll-back detected")       );       return prevSameIndex === -1;     }     return true;   })   .slice(0, 14)   .map((e) => (
                     <div key={e.id} className="rounded-xl border px-3 py-2">
                       <div className="flex items-start gap-2">
                         <Badge
