@@ -1,5 +1,5 @@
 import { Preferences, ReadingGoal, ThemeMode, useApp } from "@/shared/state/AppContext";
-import { useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { Badge } from "@/components/ui/badge";
@@ -269,9 +269,9 @@ export default function Onboarding() {
                 onValueChange={(v) => setPreferences({ readingGoal: v as ReadingGoal })}
               >
                 <TabsList className="grid grid-cols-3">
-                  <TabsTrigger value="skim">Skim</TabsTrigger>
-                  <TabsTrigger value="understand">Understand</TabsTrigger>
-                  <TabsTrigger value="study">Study</TabsTrigger>
+                  <TooltipTrigger value="skim" tooltip="Get the main points quickly without reading every word.">Skim</TooltipTrigger>
+                  <TooltipTrigger value="understand" tooltip="Read carefully to grasp the meaning and key ideas.">Understand</TooltipTrigger>
+                  <TooltipTrigger value="study" tooltip="Read in depth to retain and review the content.">Study</TooltipTrigger>
                 </TabsList>
               </Tabs>
             </Card>
@@ -341,6 +341,31 @@ export default function Onboarding() {
             </Card>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+// Wraps TabsTrigger with CSS tooltip for explanations when hovering over reading goal.
+function TooltipTrigger({
+  value,
+  tooltip,
+  children,
+}: {
+  value: string;
+  tooltip: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="relative group">
+      <TabsTrigger value={value} className="w-full">{children}</TabsTrigger>
+      <div className={[
+        "pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2",
+        "w-max max-w-48 rounded border bg-popover text-popover-foreground",
+        "text-xs px-2 py-1 text-center shadow-md z-50",
+        "opacity-0 group-hover:opacity-100 transition-opacity",
+      ].join(" ")}>
+        {tooltip}
       </div>
     </div>
   );
