@@ -2,6 +2,7 @@ import {
   Preferences,
   SessionMode,
   SupportLevel,
+  ThemeMode,
   useApp,
 } from "@/shared/state/AppContext";
 
@@ -74,7 +75,7 @@ export default function SidePanel() {
   return (
     <div className="h-full bg-background">
       <Tabs defaultValue="controls" className="h-full flex flex-col">
-        <TabsList className="m-3 grid grid-cols-3 rounded-xl bg-muted p-1">
+        <TabsList className="mx-3 mb-3 grid grid-cols-3 rounded-xl bg-muted p-1">
           <TabsTrigger value="model" className="gap-1.5 text-xs">
             <User className="h-3.5 w-3.5" />
             Your Model
@@ -280,6 +281,33 @@ export default function SidePanel() {
                 format={(v) => `${v}px`}
                 onChange={(v) => setPreferences({ maxLineWidth: v })}
               />
+
+              <div className="space-y-3 rounded-xl border px-4 py-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Theme</span>
+                  <span className="text-sm text-muted-foreground capitalize">
+                    {preferences.theme === "high-contrast"
+                      ? "High contrast"
+                      : preferences.theme}
+                  </span>
+                </div>
+                <Tabs
+                  value={preferences.theme}
+                  onValueChange={(v) => {
+                    const theme = v as ThemeMode;
+                    setPreferences({ theme });
+                    addChange(`Theme changed to ${theme}.`, "info");
+                  }}
+                >
+                  <TabsList className="grid grid-cols-3">
+                    <TabsTrigger value="light" className="text-xs">Light</TabsTrigger>
+                    <TabsTrigger value="dark" className="text-xs">Dark</TabsTrigger>
+                    <TabsTrigger value="high-contrast" className="text-xs">
+                      Contrast
+                    </TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              </div>
             </Card>
 
             <Card className="p-4 space-y-3">

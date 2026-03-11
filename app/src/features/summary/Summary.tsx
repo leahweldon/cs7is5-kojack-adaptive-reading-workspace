@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 type Concept = { name: string; confidence: number };
 
@@ -17,9 +18,13 @@ function formatTime(totalSec: number) {
 
 export default function Summary() {
   const navigate = useNavigate();
-  const { userName, session, changeLog, preferences, documentText, userModel } = useApp();
+  const { userName, session, changeLog, preferences, documentText, userModel, addChange } = useApp();
 
   const [feedback, setFeedback] = useState<"yes" | "no" | null>(null);
+  const [feedbackDetail, setFeedbackDetail] = useState("");
+
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
 
   useEffect(() => {
     if (!session.startTime || !documentText || documentText.trim().length === 0) {
@@ -54,10 +59,10 @@ export default function Summary() {
 
   const concepts: Concept[] = useMemo(() => {
     return [
-      { name: "Key terms", confidence: 85 },
+      { name: "Key terms identified", confidence: 85 },
       { name: "Main idea", confidence: 70 },
       { name: "Supporting details", confidence: 55 },
-      { name: "Examples", confidence: 60 },
+      { name: "Examples recalled", confidence: 60 },
       { name: "Definitions", confidence: 45 },
       { name: "Implications", confidence: 35 },
     ];
@@ -97,6 +102,15 @@ export default function Summary() {
     a.remove();
 
     URL.revokeObjectURL(url);
+  };
+
+  const handleSubmitFeedback = () => {
+    const msg = `User feedback (${feedback ?? "none"}): ${feedbackDetail.trim()}`;
+    addChange(msg, "suggestion");
+    setFeedbackDetail("");
+    setFeedbackSubmitted(true);
+    // optionally collapse or clear feedback selection:
+    // setFeedback(null);
   };
 
   return (
@@ -162,20 +176,59 @@ export default function Summary() {
           </div>
         </Card>
 
-        <Card className="p-6 space-y-3">
-          <div className="text-sm font-medium">Recent adaptation log</div>
 
+
+        <Card className="p-6 space-y-3">
+          {/* Clickable header toggles the log open/closed */}
+          <button
+            className={`w-full flex items-center justify-between text-left ${
+              changeLog.length > 1 ? "cursor-pointer" : ""
+            }`}
+            onClick={() => {
+              if (changeLog.length > 1) setIsExpanded((prev) => !prev);
+            }}
+            aria-expanded={isExpanded}
+          >
+            <div className="text-sm font-medium">Recent adaptation log</div>
+            {changeLog.length > 1 && (
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <span>Show all</span>
+                {isExpanded
+                  ? <ChevronUp className="h-4 w-4" />
+                  : <ChevronDown className="h-4 w-4" />
+                }
+              </div>
+            )}
+          </button>
+
+          {/* Always show the latest entry or placeholder */}
           {changeLog.length === 0 ? (
             <div className="text-sm text-muted-foreground">No changes recorded.</div>
           ) : (
             <div className="flex items-start gap-3 rounded-xl border px-4 py-3">
               <Badge variant="secondary" className="text-xs">
-                {changeLog[0].type}
+                {changeLog[0]?.type || "info"}
               </Badge>
-              <div className="text-sm">{changeLog[0].message}</div>
+              <div className="text-sm">{changeLog[0]?.message || ""}</div>
+            </div>
+          )}
+
+          {/* Expanded panel showing remaining entries (skip the first one) */}
+          {isExpanded && changeLog.length > 1 && (
+            <div className="space-y-2 border-t pt-3">
+              {changeLog.slice(1).map((e) => (
+                <div key={e?.id} className="flex items-start gap-3 rounded-xl border px-4 py-3">
+                  <Badge variant="secondary" className="text-xs">
+                    {e?.type || "info"}
+                  </Badge>
+                  <div className="text-sm">{e?.message || ""}</div>
+                </div>
+              ))}
             </div>
           )}
         </Card>
+
+
 
         <Card className="p-6 space-y-3">
           <div className="text-sm font-medium">Was this helpful?</div>
@@ -184,20 +237,44 @@ export default function Summary() {
             <Button
               variant={feedback === "yes" ? "default" : "outline"}
               onClick={() => setFeedback("yes")}
+              disabled={feedbackSubmitted}
             >
               Yes
             </Button>
             <Button
               variant={feedback === "no" ? "default" : "outline"}
               onClick={() => setFeedback("no")}
+              disabled={feedbackSubmitted}
             >
               Not really
             </Button>
           </div>
 
-          {feedback && (
-            <div className="text-sm text-muted-foreground">
-              Thanks — feedback recorded for this demo session.
+          {feedback && !feedbackSubmitted && (
+            <>
+              {/* small text field shown once the user clicks yes/no */}
+              <div className="mt-2 flex gap-2">
+                <input
+                  type="text"
+                  className="flex-1 rounded border px-2 py-1 text-sm"
+                  placeholder="Additional comments (optional)"
+                  value={feedbackDetail}
+                  onChange={(e) => setFeedbackDetail(e.target.value)}
+                />
+                <button
+                  type="button"
+                  className="rounded bg-primary px-3 py-1 text-sm text-white hover:bg-primary/90"
+                  onClick={handleSubmitFeedback}
+                >
+                  Submit
+                </button>
+              </div>
+            </>
+          )}
+
+          {feedbackSubmitted && (
+            <div className="text-sm text-muted-foreground mt-1">
+              Thanks — feedback submitted.
             </div>
           )}
         </Card>
