@@ -68,9 +68,6 @@ type AppState = {
   preferences: Preferences;
   setPreferences: (patch: Partial<Preferences>) => void;
 
-  hasCompletedOnboarding: boolean;
-  setHasCompletedOnboarding: (v: boolean) => void;
-
   userModel: UserModel;
   setUserModel: (patch: Partial<UserModel>) => void;
 
