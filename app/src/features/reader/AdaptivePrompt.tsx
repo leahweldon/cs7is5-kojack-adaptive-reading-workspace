@@ -104,11 +104,17 @@ export default function AdaptivePrompt() {
         ? "You've been on this section a while — it might be worth adjusting the layout."
         : `You scrolled back ${session.scrollBackCount} time${session.scrollBackCount !== 1 ? "s" : ""} — possibly re-reading a tricky part.`;
 
-    setActive({ ...basePrompt, reason });
+    const nextPrompt = { ...basePrompt, reason };
     if (triggerKey === "pause") lastPausePromptRef.current = now;
     else rereadShownRef.current = true;
     lastShownAtRef.current = now;
     addChange(`Adaptive prompt shown: "${basePrompt.text}"`, "suggestion");
+
+    const timer = window.setTimeout(() => {
+      setActive(nextPrompt);
+    }, 0);
+
+    return () => window.clearTimeout(timer);
   }, [
     promptsDisabled,
     preferences,
@@ -117,6 +123,7 @@ export default function AdaptivePrompt() {
     session.longPauseCount,
     session.scrollBackCount,
     cooldownMs,
+    PAUSE_REPROMPT_MS,
     addChange,
   ]);
 

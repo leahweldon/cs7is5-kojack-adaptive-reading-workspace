@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { cn } from "@/lib/utils";
 
 import AdaptivePrompt from "./AdaptivePrompt";
 import ContentPane from "./ContentPane";
@@ -58,13 +59,6 @@ export default function Reader() {
       document.removeEventListener("visibilitychange", onVisibilityChange);
     };
   }, [setSession]);
-
-  useEffect(() => {
-    const root = document.documentElement;
-    root.classList.remove("dark", "high-contrast");
-    if (preferences.theme === "dark") root.classList.add("dark");
-    if (preferences.theme === "high-contrast") root.classList.add("high-contrast");
-  }, [preferences.theme]);
 
   const mins = useMemo(() => Math.floor(session.readingTimeSec / 60), [session.readingTimeSec]);
 
@@ -152,13 +146,18 @@ export default function Reader() {
 
       <main className="flex flex-1 min-h-0 overflow-hidden">
         {/* LEFT COLUMN */}
-        <section className="flex-1 min-h-0 overflow-hidden relative">
+        <section
+          className={cn(
+            "flex-1 min-h-0 overflow-hidden relative",
+            preferences.progressIndicators && "pt-16"
+          )}
+        >
           <ContentPane />
         </section>
 
         {/* RIGHT COLUMN */}
         {desktopPanelOpen && (
-          <aside className="w-[360px] border-l hidden md:block min-h-0 overflow-hidden">
+          <aside className="w-[360px] border-l hidden md:block min-h-0 overflow-hidden pt-2">
             <SidePanel />
           </aside>
         )}

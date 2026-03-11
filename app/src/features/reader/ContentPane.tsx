@@ -18,6 +18,7 @@ export default function ContentPane() {
   const {
     documentText,
     preferences,
+    session,
     addChange,
     userModel,
     setUserModel,
@@ -46,6 +47,11 @@ export default function ContentPane() {
       return [sentences.slice(0, mid).join(" "), sentences.slice(mid).join(" ")];
     });
   }, [paragraphs, preferences.chunking]);
+
+  const estimatedReadingTimeSec = useMemo(() => {
+    const words = documentText.trim().split(/\s+/).filter(Boolean).length;
+    return Math.max(8, Math.ceil((words / 200) * 60));
+  }, [documentText]);
 
   const markDifficultyAt = (index: number) => {
     const safeIndex = Math.max(0, Math.min(index, Math.max(0, chunks.length - 1)));
@@ -121,6 +127,17 @@ export default function ContentPane() {
     return Math.max(0, Math.min(100, (el.scrollTop / denom) * 100));
   };
 
+  const computeShortDocPct = () => {
+    return Math.max(0, Math.min(100, (session.readingTimeSec / estimatedReadingTimeSec) * 100));
+  };
+
+  const syncProgress = (el: HTMLDivElement) => {
+    const paneScrollable = el.scrollHeight - el.clientHeight > 1;
+    const nextPct = paneScrollable ? computePct(el) : computeShortDocPct();
+    setSession((prev) => (prev.progressPct === nextPct ? prev : { ...prev, progressPct: nextPct }));
+    return paneScrollable;
+  };
+
   const computeWindowPct = () => {
     const doc = document.documentElement;
     const denom = doc.scrollHeight - window.innerHeight;
@@ -132,8 +149,8 @@ export default function ContentPane() {
     const el = containerRef.current;
     if (!el) return;
 
-    const pct = computePct(el);
-    setSession((prev) => ({ ...prev, progressPct: pct }));
+    const paneScrollable = syncProgress(el);
+    if (!paneScrollable) return;
 
     const diff = el.scrollTop - lastScrollTop.current;
 
@@ -158,11 +175,12 @@ export default function ContentPane() {
       const el = containerRef.current;
       if (!el) return;
 
-      // Prefer pane progress whenever pane itself is scrollable.
-      if (el.scrollHeight - el.clientHeight > 1) return;
+      const paneScrollable = el.scrollHeight - el.clientHeight > 1;
+      if (paneScrollable) return;
 
-      const pct = computeWindowPct();
-      setSession((prev) => ({ ...prev, progressPct: pct }));
+      const windowScrollable = document.documentElement.scrollHeight - window.innerHeight > 1;
+      const nextPct = windowScrollable ? computeWindowPct() : computeShortDocPct();
+      setSession((prev) => (prev.progressPct === nextPct ? prev : { ...prev, progressPct: nextPct }));
     };
 
     window.addEventListener("scroll", onWindowScroll, { passive: true });
@@ -173,7 +191,33 @@ export default function ContentPane() {
       window.removeEventListener("scroll", onWindowScroll);
       window.removeEventListener("resize", onWindowScroll);
     };
-  }, [setSession]);
+  }, [estimatedReadingTimeSec, session.readingTimeSec, setSession]);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    syncProgress(el);
+  }, [
+    documentText,
+    estimatedReadingTimeSec,
+    preferences.chunking,
+    preferences.fontSize,
+    preferences.lineSpacing,
+    preferences.maxLineWidth,
+    session.readingTimeSec,
+  ]);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+
+    const observer = new ResizeObserver(() => {
+      syncProgress(el);
+    });
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [estimatedReadingTimeSec, session.readingTimeSec]);
 
   // glossary
   const renderGlossaryWord = (raw: string) => {
@@ -226,7 +270,7 @@ export default function ContentPane() {
           lineHeight: preferences.lineSpacing,
           maxWidth: `${preferences.maxLineWidth}px`,
           margin: "0 auto",
-          paddingTop: preferences.progressIndicators ? "84px" : "24px",
+          paddingTop: "24px",
           paddingBottom: "24px",
         }}
       >

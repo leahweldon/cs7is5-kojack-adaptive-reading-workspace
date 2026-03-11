@@ -1,3 +1,5 @@
+import { useApp } from "@/shared/state/AppContext";
+import { useEffect } from "react";
 import { Outlet } from "react-router-dom";
 import { useAuth, useUser } from "@clerk/clerk-react";
 import { Button } from "@/components/ui/button";
@@ -5,6 +7,14 @@ import { Button } from "@/components/ui/button";
 export default function AppShell() {
   const { signOut } = useAuth();
   const { user } = useUser();
+  const { preferences } = useApp();
+
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.remove("dark", "high-contrast");
+    if (preferences.theme === "dark") root.classList.add("dark");
+    if (preferences.theme === "high-contrast") root.classList.add("high-contrast");
+  }, [preferences.theme]);
 
   return (
     <div className="min-h-screen bg-background">

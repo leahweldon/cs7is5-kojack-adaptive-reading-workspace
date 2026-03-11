@@ -116,6 +116,7 @@ export default function DocumentUpload() {
       await refreshDocs();
     };
     load();
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
   }, []);
 
   const simulatePdf = () => {
