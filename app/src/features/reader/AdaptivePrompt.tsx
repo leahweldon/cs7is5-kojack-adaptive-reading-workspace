@@ -111,7 +111,7 @@ export default function AdaptivePrompt() {
     setActive(nextPrompt);
     addChange(`Adaptive prompt shown: "${basePrompt.text}"`, "suggestion");
 
-return () => window.clearTimeout(timer);
+
   }, [
     promptsDisabled,
     preferences,
