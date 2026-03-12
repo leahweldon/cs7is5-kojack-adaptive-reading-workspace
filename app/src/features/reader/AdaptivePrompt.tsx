@@ -108,10 +108,8 @@ export default function AdaptivePrompt() {
     if (triggerKey === "pause") lastPausePromptRef.current = now;
     else rereadShownRef.current = true;
     lastShownAtRef.current = now;
-    const timer = window.setTimeout(() => {
-  setActive(nextPrompt);
-  addChange(`Adaptive prompt shown: "${basePrompt.text}"`, "suggestion");
-}, 0);
+    setActive(nextPrompt);
+    addChange(`Adaptive prompt shown: "${basePrompt.text}"`, "suggestion");
 
 return () => window.clearTimeout(timer);
   }, [
@@ -123,7 +121,6 @@ return () => window.clearTimeout(timer);
     session.scrollBackCount,
     cooldownMs,
     PAUSE_REPROMPT_MS,
-    addChange,
   ]);
 
   if (!active) return null;
