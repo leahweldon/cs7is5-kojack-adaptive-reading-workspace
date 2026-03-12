@@ -10,6 +10,7 @@ import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Personas from "../personas/Personas";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 type Step = 1 | 2;
 type Preset = {
@@ -115,6 +116,8 @@ export default function Onboarding() {
 
   const canContinue = useMemo(() => nameDraft.trim().length > 0, [nameDraft]);
 
+  const [collapsed, setCollapsed] = useState(false);
+
   const goToStep2 = () => {
     if (!canContinue) return;
     setStep(2);
@@ -191,6 +194,54 @@ export default function Onboarding() {
           </Card>
         ) : (
           <div className="space-y-6">
+
+           {/* Live preview */}
+<div className="sticky top-6 z-20">
+  <Card className="relative p-4 space-y-2 bg-accent/40">
+
+    {/* Header */}
+    <div className="text-sm font-medium">
+      Preview
+    </div>
+        {/* Collapsible preview */}
+        {!collapsed && (
+          <>
+            <div
+              className="rounded-xl border bg-card px-5 py-2"
+              style={{
+                fontSize: `${preferences.fontSize}px`,
+                lineHeight: preferences.lineSpacing,
+                maxWidth: `${Math.min(preferences.maxLineWidth, 860)}px`,
+                margin: "0 auto",
+              }}
+            >
+              {preferences.chunking ? (
+                <div className="space-y-2">
+                  <div className="chunk-highlight">{previewBlocks[0]}</div>
+                  <div className="chunk-highlight">{previewBlocks[0]}</div>
+                </div>
+              ) : (
+                <div>{previewContent}</div>
+              )}
+            </div>
+
+            <div className="text-xs text-muted-foreground">
+            </div>
+          </>
+        )}
+
+        {/* Arrow button */}
+        <button
+          onClick={() => setCollapsed(!collapsed)}
+          className="absolute bottom-2 right-2 flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground p-1 rounded-md hover:bg-muted transition"
+        >
+          <span>{collapsed ? "Show preview" : "Hide preview"}</span>
+          {collapsed ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
+        </button>
+
+      </Card>
+    </div>
+
             {/* Presets */}
             <Card className="p-6 space-y-4">
               <div>
@@ -231,33 +282,6 @@ export default function Onboarding() {
                     </div>
                   </Card>
                 ))}
-              </div>
-            </Card>
-
-            {/* Live preview */}
-            <Card className="sticky top-6 z-20 p-6 space-y-3 bg-accent/40">
-              <div className="text-sm font-medium">Preview</div>
-              <div
-                className="rounded-xl border bg-card px-5 py-4"
-                style={{
-                  fontSize: `${preferences.fontSize}px`,
-                  lineHeight: preferences.lineSpacing,
-                  maxWidth: `${Math.min(preferences.maxLineWidth, 860)}px`,
-                  margin: "0 auto",
-                }}
-              >
-                {preferences.chunking ? (
-                  <div className="space-y-3">
-                    <div className="chunk-highlight">{previewBlocks[0]}</div>
-                    <div className="chunk-highlight">{previewBlocks[0]}</div>
-                  </div>
-                ) : (
-                  <div>{previewContent}</div>
-                )}
-              </div>
-
-              <div className="text-xs text-muted-foreground">
-                This preview updates as you change settings.
               </div>
             </Card>
 
