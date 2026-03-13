@@ -59,6 +59,13 @@ export type SessionState = {
   sessionMode: SessionMode;
 
   toggleUsage: Record<string, number>;
+  dictionaryTermsAdded: string[];
+};
+
+export type DictionaryEntry = {
+  term: string;
+  definition: string;
+  savedAt: string;
 };
 
 type AppState = {
@@ -73,6 +80,10 @@ type AppState = {
 
   documentText: string;
   setDocumentText: (v: string) => void;
+
+  savedDictionary: DictionaryEntry[];
+  saveDictionaryEntry: (term: string, definition: string) => boolean;
+  removeDictionaryEntry: (term: string) => void;
 
   changeLog: ChangeLogEntry[];
   addChange: (message: string, type: ChangeType) => void;
@@ -96,6 +107,7 @@ type AppState = {
 
 const STORAGE_USER = "claritylayer:userName:v1";
 const STORAGE_PREFS = "claritylayer:preferences:v1";
+const STORAGE_DICTIONARY = "claritylayer:dictionary:v1";
 const STORAGE_CURRENT_USER = "claritylayer:currentUserId:v1";
 
 function makeStorageKey(prefix: string, userId: string) {
@@ -140,6 +152,7 @@ const defaultSession: SessionState = {
   longPauseCount: 0,
   sessionMode: "study",
   toggleUsage: {},
+  dictionaryTermsAdded: [],
 };
 
 function safeLoad<T>(key: string): T | null {
@@ -178,6 +191,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }));
 
   const [documentText, setDocumentText] = useState("");
+  const [savedDictionary, setSavedDictionary] = useState<DictionaryEntry[]>([]);
   const [changeLog, setChangeLog] = useState<ChangeLogEntry[]>([]);
   const [session, setSession] = useState<SessionState>(defaultSession);
 
@@ -190,9 +204,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem(STORAGE_CURRENT_USER, userId);
     const stored = safeLoad<string>(makeStorageKey(STORAGE_USER, userId));
     const pref = safeLoad<Partial<Preferences>>(makeStorageKey(STORAGE_PREFS, userId));
+    const saved = safeLoad<DictionaryEntry[]>(makeStorageKey(STORAGE_DICTIONARY, userId));
     const loadedPreferences = pref ? { ...defaultPreferences, ...pref } : defaultPreferences;
 
     setUserNameState(stored ?? "");
+    setSavedDictionary(saved ?? []);
     setPreferencesState(loadedPreferences);
     setUserModelState({
       ...defaultUserModel,
@@ -214,6 +230,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [userId, preferences]);
 
+  useEffect(() => {
+    if (userId) {
+      safeSave(makeStorageKey(STORAGE_DICTIONARY, userId), savedDictionary);
+    }
+  }, [userId, savedDictionary]);
+
   const setUserName = (v: string) => setUserNameState(v);
 
   const setPreferences = (patch: Partial<Preferences>) => {
@@ -222,6 +244,41 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const setUserModel = (patch: Partial<UserModel>) => {
     setUserModelState((prev) => ({ ...prev, ...patch }));
+  };
+
+  const saveDictionaryEntry = (term: string, definition: string) => {
+    const normalized = term.trim().toLowerCase();
+    let added = false;
+
+    setSavedDictionary((prev) => {
+      if (prev.some((entry) => entry.term.trim().toLowerCase() === normalized)) {
+        return prev;
+      }
+
+      added = true;
+      return [{ term: term.trim(), definition: definition.trim(), savedAt: new Date().toISOString() }, ...prev];
+    });
+
+    if (added) {
+      setSession((prev) => {
+        if (prev.dictionaryTermsAdded.some((t) => t.toLowerCase() === normalized)) {
+          return prev;
+        }
+        return {
+          ...prev,
+          dictionaryTermsAdded: [term.trim(), ...prev.dictionaryTermsAdded],
+        };
+      });
+    }
+
+    return added;
+  };
+
+  const removeDictionaryEntry = (term: string) => {
+    const normalized = term.trim().toLowerCase();
+    setSavedDictionary((prev) =>
+      prev.filter((entry) => entry.term.trim().toLowerCase() !== normalized)
+    );
   };
 
   const addChange = (message: string, type: ChangeType) => {
@@ -277,6 +334,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     documentText,
     setDocumentText,
+
+    savedDictionary,
+    saveDictionaryEntry,
+    removeDictionaryEntry,
 
     changeLog,
     addChange,
