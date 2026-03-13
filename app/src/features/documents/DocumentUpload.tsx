@@ -1,5 +1,6 @@
 import { useApp } from "@/shared/state/AppContext";
 import { useEffect, useRef, useState } from "react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import * as pdfjsLib from "pdfjs-dist";
 
@@ -22,7 +23,9 @@ From there, the information splits. One path leads to regions responsible for ph
 
 export default function DocumentUpload() {
   const navigate = useNavigate();
-  const { setDocumentText, resetSession } = useApp();
+  const { setDocumentText, resetSession, savedDictionary } = useApp();
+
+  const [showFullDictionary, setShowFullDictionary] = useState(false);
 
   const [text, setText] = useState("");
   const [pdfLoaded, setPdfLoaded] = useState(false);
@@ -234,6 +237,43 @@ export default function DocumentUpload() {
               Start reading
             </Button>
           </div>
+        </Card>
+
+        <Card className="p-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="font-medium">Saved dictionary</div>
+            <Badge variant="secondary">{savedDictionary.length} saved</Badge>
+          </div>
+
+          <div className="flex justify-start">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setShowFullDictionary((prev) => !prev)}
+              className="flex items-center gap-1.5"
+            >
+              {showFullDictionary ? (
+                <><ChevronUp className="h-3.5 w-3.5" /> Hide dictionary</>
+              ) : (
+                <><ChevronDown className="h-3.5 w-3.5" /> View full dictionary</>
+              )}
+            </Button>
+          </div>
+
+          {showFullDictionary && (
+            savedDictionary.length === 0 ? (
+              <div className="text-sm text-muted-foreground">Your saved dictionary is empty. Highlight glossary terms while reading to save them here.</div>
+            ) : (
+              <div className="space-y-2">
+                {savedDictionary.map((entry) => (
+                  <div key={entry.term} className="rounded-xl border px-4 py-3">
+                    <div className="text-sm font-medium">{entry.term}</div>
+                    <div className="text-sm text-muted-foreground">{entry.definition}</div>
+                  </div>
+                ))}
+              </div>
+            )
+          )}
         </Card>
 
         <Card className="p-6 space-y-3">

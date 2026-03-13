@@ -1,6 +1,6 @@
 import { Preferences, ReadingGoal, ThemeMode, useApp } from "@/shared/state/AppContext";
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -107,9 +107,11 @@ function applyBionicPreview(word: string) {
 
 export default function Onboarding() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { userName, setUserName, preferences, setPreferences, resetSession } = useApp();
+  const isSettingsRoute = location.pathname === "/settings";
 
-  const [step, setStep] = useState<Step>(1);
+  const [step, setStep] = useState<Step>(isSettingsRoute ? 2 : 1);
   const [nameDraft, setNameDraft] = useState(userName);
   const [selectedPreset, setSelectedPreset] = useState<Preset["id"]>("default");
 
@@ -121,7 +123,8 @@ export default function Onboarding() {
   };
 
   const finishSetup = () => {
-    setUserName(nameDraft.trim());
+    const finalName = nameDraft.trim() || userName;
+    setUserName(finalName);
     resetSession();
     navigate("/documents");
   };

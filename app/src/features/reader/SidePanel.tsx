@@ -5,6 +5,7 @@ import {
   ThemeMode,
   useApp,
 } from "@/shared/state/AppContext";
+import { useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -27,11 +28,15 @@ type PrefToggleKey = keyof Pick<
 >;
 
 export default function SidePanel() {
+  const [showSavedDictionary, setShowSavedDictionary] = useState(false);
+
   const {
     preferences,
     setPreferences,
     userModel,
     setUserModel,
+    savedDictionary,
+    removeDictionaryEntry,
     changeLog,
     addChange,
     bumpToggle,
@@ -175,6 +180,55 @@ export default function SidePanel() {
 
           {/* CONTROLS */}
           <TabsContent value="controls" className="mt-0 space-y-3">
+            <Card className="p-4 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="text-sm font-medium">Saved dictionary</div>
+                <Badge variant="secondary" className="text-[10px]">
+                  {savedDictionary.length}
+                </Badge>
+              </div>
+
+              <div className="flex justify-start">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setShowSavedDictionary((prev) => !prev)}
+                >
+                  {showSavedDictionary ? "Hide saved dictionary" : "View saved dictionary"}
+                </Button>
+              </div>
+
+              {showSavedDictionary && (
+                savedDictionary.length === 0 ? (
+                  <div className="text-xs text-muted-foreground">
+                    Save highlighted glossary terms while reading and they will appear here.
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {savedDictionary.map((entry) => (
+                      <div key={entry.term} className="rounded-xl border px-3 py-3 space-y-2">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="text-sm font-medium">{entry.term}</div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-xs"
+                            onClick={() => {
+                              removeDictionaryEntry(entry.term);
+                              addChange(`Removed "${entry.term}" from dictionary.`, "info");
+                            }}
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                        <div className="text-xs text-muted-foreground">{entry.definition}</div>
+                      </div>
+                    ))}
+                  </div>
+                )
+              )}
+            </Card>
+
             <Card className="p-4 space-y-5">
               <div className="text-sm font-medium">Session</div>
 

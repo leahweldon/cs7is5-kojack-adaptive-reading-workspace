@@ -20,6 +20,7 @@ export default function ContentPane() {
     preferences,
     session,
     addChange,
+    saveDictionaryEntry,
     userModel,
     setUserModel,
     bumpScrollBack,
@@ -28,6 +29,7 @@ export default function ContentPane() {
   } = useApp();
 
   const [glossaryTerm, setGlossaryTerm] = useState<string | null>(null);
+  const [dictionaryMessage, setDictionaryMessage] = useState<string | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const lastScrollTop = useRef(0);
@@ -290,10 +292,31 @@ export default function ContentPane() {
           <Card className="p-4 shadow-sm">
             <div className="text-sm font-medium mb-1">{glossaryTerm}</div>
             <div className="text-sm text-muted-foreground mb-3">{GLOSSARY[glossaryTerm]}</div>
-            <div className="flex justify-end">
-              <Button size="sm" variant="outline" onClick={() => setGlossaryTerm(null)}>
-                Close
-              </Button>
+            <div className="flex items-center justify-between gap-3">
+              <div className="text-xs text-muted-foreground">{dictionaryMessage ?? ""}</div>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    if (!glossaryTerm) return;
+                    const added = saveDictionaryEntry(glossaryTerm, GLOSSARY[glossaryTerm]);
+                    if (added) {
+                      setDictionaryMessage("Saved to dictionary.");
+                      addChange(`Saved "${glossaryTerm}" to dictionary.`, "info");
+                    } else {
+                      setDictionaryMessage("Already in dictionary.");
+                    }
+                  }}
+                >
+                  Save to dictionary
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => {
+                  setGlossaryTerm(null);
+                  setDictionaryMessage(null);
+                }}>
+                  Close
+                </Button>
+              </div>
             </div>
           </Card>
         </div>

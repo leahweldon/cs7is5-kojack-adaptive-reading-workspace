@@ -18,12 +18,13 @@ function formatTime(totalSec: number) {
 
 export default function Summary() {
   const navigate = useNavigate();
-  const { userName, session, changeLog, preferences, documentText, userModel, addChange } = useApp();
+  const { userName, session, savedDictionary, changeLog, preferences, documentText, userModel, addChange } = useApp();
 
   const [feedback, setFeedback] = useState<"yes" | "no" | null>(null);
   const [feedbackDetail, setFeedbackDetail] = useState("");
 
   const [isExpanded, setIsExpanded] = useState(false);
+  const [showFullDictionary, setShowFullDictionary] = useState(false);
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
 
   useEffect(() => {
@@ -174,6 +175,51 @@ export default function Summary() {
           <div className="text-sm text-muted-foreground">
             Enabled features: {enabledFeatures.length ? enabledFeatures.join(", ") : "None"}
           </div>
+        </Card>
+
+        <Card className="p-6 space-y-4">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <div className="text-sm font-medium">Dictionary summary</div>
+              <div className="text-xs text-muted-foreground">
+                Words you saved during this session and your full saved dictionary.
+              </div>
+            </div>
+            <Badge variant="secondary">{session.dictionaryTermsAdded.length} this session</Badge>
+          </div>
+
+          {session.dictionaryTermsAdded.length === 0 ? (
+            <div className="text-sm text-muted-foreground">No words were added to the dictionary this session.</div>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {session.dictionaryTermsAdded.map((term) => (
+                <Badge key={term} variant="outline" className="text-xs">
+                  {term}
+                </Badge>
+              ))}
+            </div>
+          )}
+
+          <div className="pt-1">
+            <Button size="sm" variant="outline" onClick={() => setShowFullDictionary((prev) => !prev)}>
+              {showFullDictionary ? "Hide full dictionary" : "View full dictionary"}
+            </Button>
+          </div>
+
+          {showFullDictionary && (
+            savedDictionary.length === 0 ? (
+              <div className="text-sm text-muted-foreground">Your saved dictionary is empty.</div>
+            ) : (
+              <div className="space-y-2">
+                {savedDictionary.map((entry) => (
+                  <div key={entry.term} className="rounded-xl border px-4 py-3">
+                    <div className="text-sm font-medium">{entry.term}</div>
+                    <div className="text-sm text-muted-foreground">{entry.definition}</div>
+                  </div>
+                ))}
+              </div>
+            )
+          )}
         </Card>
 
 
