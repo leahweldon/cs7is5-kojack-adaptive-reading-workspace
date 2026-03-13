@@ -63,6 +63,11 @@ export default function AdaptivePrompt() {
   }, [preferences.supportLevel]);
 
   const lastShownAtRef = useRef<number | null>(null);
+  // Stable ref so addChange never causes the effect to re-run
+  const addChangeRef = useRef(addChange);
+  useEffect(() => {
+    addChangeRef.current = addChange;
+  });
 
   useEffect(() => {
     // Reset tracking refs when prompts are disabled so re-enabling starts fresh.
