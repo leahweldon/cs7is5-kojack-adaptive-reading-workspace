@@ -28,7 +28,7 @@ export default function Nudges() {
     return 18000;
   }, [preferences.supportLevel]);
 
-  // Encouragement nudge: after ~60 seconds of reading time (once per session)
+  // Encouragement nudge: after 60 seconds of reading time (once per session)
   useEffect(() => {
     if (!preferences.encouragementNudges) return;
     if (active) return;
@@ -51,6 +51,8 @@ export default function Nudges() {
       encouragementShownRef.current = true;
       lastShownAtRef.current = Date.now();
       addChange(`Encouragement nudge shown: "${n.message}"`, "suggestion");
+      // Auto-dismiss after 7 seconds
+      window.setTimeout(() => setActive((cur) => cur?.kind === "encouragement" ? null : cur), 7000);
     }, 0);
 
     return () => window.clearTimeout(t);
@@ -133,21 +135,23 @@ export default function Nudges() {
 
             <div className="text-sm text-muted-foreground">{active.message}</div>
 
-            <div className="flex gap-2 flex-wrap pt-1">
-              {!preferences.chunking && (
-                <Button size="sm" onClick={enableChunking}>
-                  Enable chunking
+            {active.kind === "distraction" && (
+              <div className="flex gap-2 flex-wrap pt-1">
+                {!preferences.chunking && (
+                  <Button size="sm" onClick={enableChunking}>
+                    Enable chunking
+                  </Button>
+                )}
+                {!preferences.bionicReading && (
+                  <Button size="sm" variant="outline" onClick={enableBionic}>
+                    Enable bionic
+                  </Button>
+                )}
+                <Button size="sm" variant="ghost" onClick={dismiss}>
+                  Dismiss
                 </Button>
-              )}
-              {!preferences.bionicReading && (
-                <Button size="sm" variant="outline" onClick={enableBionic}>
-                  Enable bionic
-                </Button>
-              )}
-              <Button size="sm" variant="ghost" onClick={dismiss}>
-                Dismiss
-              </Button>
-            </div>
+              </div>
+            )}
           </div>
         </div>
       </Card>

@@ -1,5 +1,5 @@
 import { Preferences, ReadingGoal, ThemeMode, useApp } from "@/shared/state/AppContext";
-import { useMemo, useState } from "react";
+import { ReactNode, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import { Badge } from "@/components/ui/badge";
@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import Personas from "../personas/Personas";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 type Step = 1 | 2;
 type Preset = {
@@ -117,6 +117,8 @@ export default function Onboarding() {
 
   const canContinue = useMemo(() => nameDraft.trim().length > 0, [nameDraft]);
 
+  const [collapsed, setCollapsed] = useState(false);
+
   const goToStep2 = () => {
     if (!canContinue) return;
     setStep(2);
@@ -194,6 +196,54 @@ export default function Onboarding() {
           </Card>
         ) : (
           <div className="space-y-6">
+
+           {/* Live preview */}
+<div className="sticky top-6 z-20">
+  <Card className="relative p-4 space-y-2 bg-accent/40">
+
+    {/* Header */}
+    <div className="text-sm font-medium">
+      Preview
+    </div>
+        {/* Collapsible preview */}
+        {!collapsed && (
+          <>
+            <div
+              className="rounded-xl border bg-card px-5 py-2"
+              style={{
+                fontSize: `${preferences.fontSize}px`,
+                lineHeight: preferences.lineSpacing,
+                maxWidth: `${Math.min(preferences.maxLineWidth, 860)}px`,
+                margin: "0 auto",
+              }}
+            >
+              {preferences.chunking ? (
+                <div className="space-y-2">
+                  <div className="chunk-highlight">{previewBlocks[0]}</div>
+                  <div className="chunk-highlight">{previewBlocks[0]}</div>
+                </div>
+              ) : (
+                <div>{previewContent}</div>
+              )}
+            </div>
+
+            <div className="text-xs text-muted-foreground">
+            </div>
+          </>
+        )}
+
+        {/* Arrow button */}
+        <button
+          onClick={() => setCollapsed(!collapsed)}
+          className="absolute bottom-2 right-2 flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground p-1 rounded-md hover:bg-muted transition"
+        >
+          <span>{collapsed ? "Show preview" : "Hide preview"}</span>
+          {collapsed ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
+        </button>
+
+      </Card>
+    </div>
+
             {/* Presets */}
             <Card className="p-6 space-y-4">
               <div>
@@ -237,33 +287,6 @@ export default function Onboarding() {
               </div>
             </Card>
 
-            {/* Live preview */}
-            <Card className="sticky top-6 z-20 p-6 space-y-3 bg-accent/40">
-              <div className="text-sm font-medium">Preview</div>
-              <div
-                className="rounded-xl border bg-card px-5 py-4"
-                style={{
-                  fontSize: `${preferences.fontSize}px`,
-                  lineHeight: preferences.lineSpacing,
-                  maxWidth: `${Math.min(preferences.maxLineWidth, 860)}px`,
-                  margin: "0 auto",
-                }}
-              >
-                {preferences.chunking ? (
-                  <div className="space-y-3">
-                    <div className="chunk-highlight">{previewBlocks[0]}</div>
-                    <div className="chunk-highlight">{previewBlocks[0]}</div>
-                  </div>
-                ) : (
-                  <div>{previewContent}</div>
-                )}
-              </div>
-
-              <div className="text-xs text-muted-foreground">
-                This preview updates as you change settings.
-              </div>
-            </Card>
-
             {/* Reading goal */}
             <Card className="p-6 space-y-4">
               <div className="text-sm font-medium">Reading goal</div>
@@ -272,9 +295,9 @@ export default function Onboarding() {
                 onValueChange={(v) => setPreferences({ readingGoal: v as ReadingGoal })}
               >
                 <TabsList className="grid grid-cols-3">
-                  <TabsTrigger value="skim">Skim</TabsTrigger>
-                  <TabsTrigger value="understand">Understand</TabsTrigger>
-                  <TabsTrigger value="study">Study</TabsTrigger>
+                  <TooltipTrigger value="skim" tooltip="Get the main points quickly without reading every word.">Skim</TooltipTrigger>
+                  <TooltipTrigger value="understand" tooltip="Read carefully to grasp the meaning and key ideas.">Understand</TooltipTrigger>
+                  <TooltipTrigger value="study" tooltip="Read in depth to retain and review the content.">Study</TooltipTrigger>
                 </TabsList>
               </Tabs>
             </Card>
@@ -344,6 +367,31 @@ export default function Onboarding() {
             </Card>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+// Wraps TabsTrigger with CSS tooltip for explanations when hovering over reading goal.
+function TooltipTrigger({
+  value,
+  tooltip,
+  children,
+}: {
+  value: string;
+  tooltip: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="relative group">
+      <TabsTrigger value={value} className="w-full">{children}</TabsTrigger>
+      <div className={[
+        "pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2",
+        "w-max max-w-48 rounded border bg-popover text-popover-foreground",
+        "text-xs px-2 py-1 text-center shadow-md z-50",
+        "opacity-0 group-hover:opacity-100 transition-opacity",
+      ].join(" ")}>
+        {tooltip}
       </div>
     </div>
   );
