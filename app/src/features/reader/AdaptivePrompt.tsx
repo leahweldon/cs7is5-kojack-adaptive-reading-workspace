@@ -114,7 +114,7 @@ export default function AdaptivePrompt() {
     else rereadShownRef.current = true;
     lastShownAtRef.current = now;
     setActive(nextPrompt);
-    addChange(`Adaptive prompt shown: "${basePrompt.text}"`, "suggestion");
+    addChangeRef.current(`Adaptive prompt shown: "${basePrompt.text}"`, "suggestion");
 
 
   }, [
