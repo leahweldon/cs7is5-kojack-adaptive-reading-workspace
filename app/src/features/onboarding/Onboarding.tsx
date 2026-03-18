@@ -1,6 +1,6 @@
 import { Preferences, ReadingGoal, ThemeMode, useApp } from "@/shared/state/AppContext";
-import React, { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { ReactNode, useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,6 @@ import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import Personas from "../personas/Personas";
 import { ChevronDown, ChevronUp } from "lucide-react";
 
 type Step = 1 | 2;
@@ -108,9 +107,11 @@ function applyBionicPreview(word: string) {
 
 export default function Onboarding() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { userName, setUserName, preferences, setPreferences, resetSession } = useApp();
+  const isSettingsRoute = location.pathname === "/settings";
 
-  const [step, setStep] = useState<Step>(1);
+  const [step, setStep] = useState<Step>(isSettingsRoute ? 2 : 1);
   const [nameDraft, setNameDraft] = useState(userName);
   const [selectedPreset, setSelectedPreset] = useState<Preset["id"]>("default");
 
@@ -124,7 +125,8 @@ export default function Onboarding() {
   };
 
   const finishSetup = () => {
-    setUserName(nameDraft.trim());
+    const finalName = nameDraft.trim() || userName;
+    setUserName(finalName);
     resetSession();
     navigate("/documents");
   };
@@ -378,7 +380,7 @@ function TooltipTrigger({
 }: {
   value: string;
   tooltip: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
     <div className="relative group">

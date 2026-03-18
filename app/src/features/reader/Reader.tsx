@@ -2,7 +2,6 @@ import { useApp } from "@/shared/state/AppContext";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -15,7 +14,7 @@ import SidePanel from "./SidePanel";
 
 export default function Reader() {
   const navigate = useNavigate();
-  const { userName, preferences, session, setSession, documentText } = useApp();
+  const { preferences, session, setSession, documentText } = useApp();
   const [desktopPanelOpen, setDesktopPanelOpen] = useState(true);
 
   useEffect(() => {
@@ -60,42 +59,25 @@ export default function Reader() {
     };
   }, [setSession]);
 
-  const mins = useMemo(() => Math.floor(session.readingTimeSec / 60), [session.readingTimeSec]);
-
-  const docTitle = useMemo(() => {
-    const firstLine = documentText.split("\n")[0]?.trim() || "Untitled document";
-    return firstLine.length > 44 ? firstLine.slice(0, 44) + "…" : firstLine;
-  }, [documentText]);
-
   const progress = useMemo(() => {
     const pct = Number.isFinite(session.progressPct) ? session.progressPct : 0;
     return Math.min(100, Math.max(0, pct));
   }, [session.progressPct]);
 
   return (
-    <div className="h-screen overflow-hidden bg-background flex flex-col">
-      <header className="h-14 border-b bg-background flex items-center justify-between px-4">
-        <div className="flex items-center gap-3 min-w-0">
-          <img src="/logo.png" alt="Clarity Layer" className="h-6 w-auto object-contain" />
-
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-semibold tracking-tight">Clarity Layer</span>
-              <Badge variant="secondary" className="text-[10px] hidden sm:inline-flex">
-                {session.sessionMode}
-              </Badge>
-              <Badge variant="outline" className="text-[10px] hidden sm:inline-flex">
-                {preferences.supportLevel}
-              </Badge>
+    <div className="h-[calc(100vh-56px)] overflow-hidden bg-background flex flex-col">
+      <header className="h-14 border-b bg-background flex items-center gap-4 px-4">
+        {preferences.progressIndicators && (
+          <div className="hidden md:block flex-1 min-w-[220px]">
+            <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
+              <span>Reading progress</span>
+              <span>{Math.round(progress)}%</span>
             </div>
-
-            <div className="text-xs text-muted-foreground hidden sm:block">
-              {userName ? `Hello, ${userName}` : "Reading session"} • {mins}m • {docTitle}
-            </div>
+            <Progress value={progress} />
           </div>
-        </div>
+        )}
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 ml-auto">
           <Button size="sm" variant="outline" onClick={() => navigate("/documents")}>
             Documents
           </Button>
@@ -130,27 +112,10 @@ export default function Reader() {
 
       <Nudges />
 
-      {preferences.progressIndicators && (
-        <div
-          className={`fixed top-14 left-0 right-0 ${
-            desktopPanelOpen ? "md:right-[360px]" : "md:right-0"
-          } z-30 bg-background/95 backdrop-blur border-b px-6 py-3`}
-        >
-          <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
-            <span>Reading progress</span>
-            <span>{Math.round(progress)}%</span>
-          </div>
-          <Progress value={progress} />
-        </div>
-      )}
-
       <main className="flex flex-1 min-h-0 overflow-hidden">
         {/* LEFT COLUMN */}
         <section
-          className={cn(
-            "flex-1 min-h-0 overflow-hidden relative",
-            preferences.progressIndicators && "pt-16"
-          )}
+          className={cn("flex-1 min-h-0 overflow-hidden relative")}
         >
           <ContentPane />
         </section>
