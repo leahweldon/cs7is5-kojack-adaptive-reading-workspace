@@ -5,6 +5,7 @@ import { useAuth, useUser } from "@clerk/clerk-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
+import { Menu } from "lucide-react";
 
 export default function AppShell() {
   const navigate = useNavigate();
@@ -29,14 +30,35 @@ export default function AppShell() {
       {/* Sticky header with brand dropdown */}
       <div className="sticky top-0 z-40 border-b bg-card/90 backdrop-blur supports-[backdrop-filter]:bg-card/70">
         <div className="mx-auto max-w-7xl px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <img src="/logo.png" alt="Clarity Layer" className="h-6 w-auto object-contain" />
+          </div>
+
+          {isReaderRoute ? (
+            <div className="hidden md:flex min-w-0 items-center gap-2 text-xs">
+              <span className="font-semibold text-foreground">Clarity Layer</span>
+              <Badge variant="secondary" className="text-[10px]">
+                {session.sessionMode}
+              </Badge>
+              <Badge variant="outline" className="text-[10px]">
+                {preferences.supportLevel}
+              </Badge>
+              <span className="text-muted-foreground truncate">
+                {userName ? `Hello, ${userName}` : "Reading session"} • {mins}m • {readerTitle}
+              </span>
+            </div>
+          ) : (
+            <div />
+          )}
+
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="ghost" className="h-auto px-2 py-1.5" aria-label="Open account menu">
-                <img src="/logo.png" alt="Clarity Layer" className="h-6 w-auto object-contain" />
+              <Button variant="ghost" size="icon" aria-label="Open account menu">
+                <Menu className="h-5 w-5" />
               </Button>
             </PopoverTrigger>
 
-            <PopoverContent align="start" className="w-80">
+            <PopoverContent align="end" className="w-80">
               <div className="space-y-3">
                 <div>
                   <div className="text-xs text-muted-foreground">Signed in as</div>
@@ -60,25 +82,6 @@ export default function AppShell() {
               </div>
             </PopoverContent>
           </Popover>
-
-          {isReaderRoute ? (
-            <div className="hidden md:flex min-w-0 items-center gap-2 text-xs">
-              <span className="font-semibold text-foreground">Clarity Layer</span>
-              <Badge variant="secondary" className="text-[10px]">
-                {session.sessionMode}
-              </Badge>
-              <Badge variant="outline" className="text-[10px]">
-                {preferences.supportLevel}
-              </Badge>
-              <span className="text-muted-foreground truncate">
-                {userName ? `Hello, ${userName}` : "Reading session"} • {mins}m • {readerTitle}
-              </span>
-            </div>
-          ) : (
-            <div className="text-xs text-muted-foreground hidden sm:block">
-              Open the logo menu for account actions
-            </div>
-          )}
         </div>
       </div>
 

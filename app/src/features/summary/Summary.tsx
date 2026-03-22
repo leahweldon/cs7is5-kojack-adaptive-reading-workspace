@@ -329,8 +329,8 @@ export default function Summary() {
           <Button variant="outline" onClick={() => navigate("/reader")}>
             Back to reading
           </Button>
-          <Button variant="outline" onClick={() => navigate("/documents")}>
-            Documents
+          <Button variant="outline" onClick={() => navigate("/settings")}>
+            Return to settings
           </Button>
           <Button onClick={() => navigate("/")}>New session</Button>
         </div>
