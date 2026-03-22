@@ -198,7 +198,7 @@ export default function Onboarding() {
           <div className="space-y-6">
 
            {/* Live preview */}
-<div className="sticky top-6 z-20">
+<div className="sticky top-16 z-20">
   <Card className="relative p-4 space-y-2 bg-accent/40">
 
     {/* Header */}

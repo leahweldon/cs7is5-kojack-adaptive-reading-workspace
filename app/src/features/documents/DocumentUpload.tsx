@@ -191,7 +191,6 @@ export default function DocumentUpload() {
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <div className="font-medium">Quick start</div>
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => navigate("/settings")}>Settings</Button>
               <Button 
                 variant="outline" 
                 onClick={() => fileInputRef.current?.click()}
