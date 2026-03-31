@@ -17,7 +17,7 @@ This repository contains the frontend proof-of-concept implementation.
 
 ---
 
-## Implemented Features (Frontend POC)
+## Implemented Features
 
 ### Onboarding
 - Two-step setup flow
@@ -86,13 +86,23 @@ This repository contains the frontend proof-of-concept implementation.
 cd app
 ```
 
-### 2. Install dependencies
+### 2. Configure environment variables
+
+Create an `app/.env.local` file and add the team's Clerk publishable key:
+
+```env
+VITE_CLERK_PUBLISHABLE_KEY=pk_test_your_key_here
+```
+
+For more detail, see `app/CLERK_SETUP.md`.
+
+### 3. Install dependencies
 
 ```bash
 npm install
 ```
 
-### 3. Run the development server
+### 4. Run the development server
 
 ```bash
 npm run dev
@@ -126,13 +136,13 @@ nvm use 22
 
 ## Build for Production
 
-To generate a production build:
+From the `app` directory, generate a production build with:
 
 ```bash
 npm run build
 ```
 
-To preview the production build locally:
+From the `app` directory, preview the production build locally with:
 
 ```bash
 npm run preview
@@ -154,7 +164,7 @@ Backend integration can be added in future iterations via the shared API layer.
 
 ---
 
-## Demo Flow (Recommended for Evaluation)
+## Demo Flow
 
 1. Complete onboarding (choose support level and optional stereotype).
 2. Paste text or simulate document upload.
@@ -167,11 +177,12 @@ Backend integration can be added in future iterations via the shared API layer.
 
 ## Project Structure
 
-```
+``` 
 app/
   src/
-    features/        # Feature modules (reader, onboarding, summary, documents)
-    shared/          # Global state + routing
+    app/             # App-level routing
+    features/        # Feature modules (auth, documents, onboarding, personas, reader, summary)
+    shared/          # Shared API, layout, and state
     components/      # Reusable UI components (shadcn)
     lib/             # Utilities
 docs/                # Reports, diagrams, documentation
@@ -183,5 +194,15 @@ docs/                # Reports, diagrams, documentation
 
 This project is licensed under the MIT License.
 See the LICENSE file for details.
+
+---
+
+## Authors
+
+- Leah Weldon - weldonl@tcd.ie - 21363670
+- Martha Ryan - ryanm86@tcd.ie - 21364383
+- Petra Marcokova - marcokop@tcd.ie - 21365998
+- Tanmay Dilip Birari - birarit@tcd.ie - 25337064
+- Liam Byrne - byrnel57@tcd.ie - 21364304
 
 ---
