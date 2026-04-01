@@ -33,7 +33,10 @@ export default function ContentPane() {
 
   const containerRef = useRef<HTMLDivElement>(null);
   const lastScrollTop = useRef(0);
+  const lastScrollBackAt = useRef<number>(0);
+  const scrollBackAccum = useRef(0);
   const pauseTimeout = useRef<number | null>(null);
+  const SCROLLBACK_BUFFER_MS = 1500;
 
   const paragraphs = useMemo(() => {
     return documentText.split("\n\n").filter((p) => p.trim().length > 0);
@@ -120,6 +123,7 @@ export default function ContentPane() {
   // reset progress when doc changes
   useEffect(() => {
     lastScrollTop.current = 0;
+    scrollBackAccum.current = 0;
     setSession((prev) => ({ ...prev, progressPct: 0 }));
   }, [documentText, setSession]);
 
@@ -156,15 +160,28 @@ export default function ContentPane() {
 
     const diff = el.scrollTop - lastScrollTop.current;
 
-    if (diff < -60) {
-      bumpScrollBack();
-      addChange("Scroll-back detected (possible reread).", "info");
+    if (diff < 0) {
+      scrollBackAccum.current += diff;
+    } else if (diff > 15) {
+      scrollBackAccum.current = 0;
+    }
 
-      const sectionIndex = Math.min(
-        Math.floor((el.scrollTop / Math.max(1, el.scrollHeight)) * chunks.length),
-        Math.max(0, chunks.length - 1)
-      );
-      markDifficultyAt(sectionIndex);
+    if (scrollBackAccum.current <= -80) {
+      const now = Date.now();
+      if (now - lastScrollBackAt.current >= SCROLLBACK_BUFFER_MS) {
+        lastScrollBackAt.current = now;
+        bumpScrollBack();
+        addChange("Scroll-back detected (possible reread).", "info");
+
+        const sectionIndex = Math.min(
+          Math.floor((el.scrollTop / Math.max(1, el.scrollHeight)) * chunks.length),
+          Math.max(0, chunks.length - 1)
+        );
+        markDifficultyAt(sectionIndex);
+      }
+
+      // Reset so one continuous gesture doesn't count repeatedly.
+      scrollBackAccum.current = 0;
     }
 
     lastScrollTop.current = el.scrollTop;

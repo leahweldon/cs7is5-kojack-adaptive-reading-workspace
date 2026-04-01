@@ -21,7 +21,6 @@ type PrefToggleKey = keyof Pick<
   | "bionicReading"
   | "chunking"
   | "glossary"
-  | "adaptivePrompts"
   | "progressIndicators"
   | "encouragementNudges"
   | "distractionPrompts"
@@ -42,7 +41,6 @@ export default function SidePanel() {
     bumpToggle,
     layoutLocked,
     setLayoutLocked,
-    promptsDisabled,
     setPromptsDisabled,
     session,
     setSession,
@@ -50,6 +48,19 @@ export default function SidePanel() {
 
   const supportMap: Record<SupportLevel, number> = { low: 1, medium: 2, high: 3 };
   const reverseSupportMap: Record<number, SupportLevel> = { 1: "low", 2: "medium", 3: "high" };
+
+  const applySupportLevel = (level: SupportLevel) => {
+    if (level === "low") {
+      setPreferences({ supportLevel: level, adaptivePrompts: false });
+      setPromptsDisabled(true);
+      addChange("Support level set to low. Adaptive prompts disabled and automatic prompt-based changes paused.", "info");
+      return;
+    }
+
+    setPreferences({ supportLevel: level, adaptivePrompts: true });
+    setPromptsDisabled(false);
+    addChange(`Support level set to ${level}. Adaptive prompts enabled.`, "info");
+  };
 
   const toggle = (key: PrefToggleKey, value: boolean) => {
     setPreferences({ [key]: value });
@@ -66,9 +77,9 @@ export default function SidePanel() {
     addChange(`Session mode set to ${mode}.`, "info");
 
     // simple mapping to keep demo behaviour predictable
-    if (mode === "skim") setPreferences({ supportLevel: "low" });
-    if (mode === "study") setPreferences({ supportLevel: "high" });
-    if (mode === "revise") setPreferences({ supportLevel: "medium" });
+    if (mode === "skim") applySupportLevel("low");
+    if (mode === "study") applySupportLevel("high");
+    if (mode === "revise") applySupportLevel("medium");
   };
 
   const clearDifficulty = () => {
@@ -255,9 +266,8 @@ export default function SidePanel() {
                   step={1}
                   onValueChange={([v]) => {
                     const level = reverseSupportMap[v];
-                    setPreferences({ supportLevel: level });
+                    applySupportLevel(level);
                     setUserModel({ supportLevel: level });
-                    addChange(`Support level set to ${level}.`, "info");
                   }}
                 />
               </div>
@@ -270,16 +280,6 @@ export default function SidePanel() {
               <ToggleRow label="Chunking" checked={preferences.chunking} onChange={(v) => toggle("chunking", v)} />
               <ToggleRow label="Glossary" checked={preferences.glossary} onChange={(v) => toggle("glossary", v)} />
               <ToggleRow label="Progress indicator" checked={preferences.progressIndicators} onChange={(v) => toggle("progressIndicators", v)} />
-
-              <ToggleRow
-                label="Adaptive prompts"
-                checked={preferences.adaptivePrompts && !promptsDisabled}
-                onChange={(v) => {
-                  setPreferences({ adaptivePrompts: v });
-                  setPromptsDisabled(!v);
-                  addChange(`Adaptive prompts ${v ? "enabled" : "disabled"} by user.`, "info");
-                }}
-              />
             </Card>
 
             {/* Nudges section */}

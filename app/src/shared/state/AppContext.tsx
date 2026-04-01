@@ -7,6 +7,7 @@ export type SupportLevel = "low" | "medium" | "high";
 export type ThemeMode = "light" | "dark" | "high-contrast";
 export type SessionMode = "study" | "revise" | "skim";
 export type PromptFrequency = "low" | "medium" | "high";
+export type UserPreset = "default" | "adhd" | "dyslexia" | "lowvision";
 
 export type Preferences = {
   readingGoal: ReadingGoal;
@@ -34,6 +35,7 @@ export type UserModel = {
   supportLevel: SupportLevel;
   glossaryPreference: boolean;
   bionicPreference: boolean;
+  selectedPreset: UserPreset;
   detectedDifficultySections: string[];
 };
 
@@ -141,8 +143,16 @@ const defaultUserModel: UserModel = {
   supportLevel: "medium",
   glossaryPreference: true,
   bionicPreference: false,
+  selectedPreset: "default",
   detectedDifficultySections: [],
 };
+
+function inferPresetFromPreferences(preferences: Preferences): UserPreset {
+  if (preferences.theme === "high-contrast" || preferences.fontSize >= 22) return "lowvision";
+  if (preferences.bionicReading && preferences.chunking && preferences.fontSize >= 18) return "dyslexia";
+  if (preferences.chunking && preferences.adaptivePrompts && preferences.maxLineWidth <= 640) return "adhd";
+  return "default";
+}
 
 const defaultSession: SessionState = {
   startTime: null,
@@ -188,6 +198,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     supportLevel: preferences.supportLevel,
     glossaryPreference: preferences.glossary,
     bionicPreference: preferences.bionicReading,
+    selectedPreset: inferPresetFromPreferences(preferences),
   }));
 
   const [documentText, setDocumentText] = useState("");
@@ -215,6 +226,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       supportLevel: loadedPreferences.supportLevel,
       glossaryPreference: loadedPreferences.glossary,
       bionicPreference: loadedPreferences.bionicReading,
+      selectedPreset: inferPresetFromPreferences(loadedPreferences),
     });
   }, [userId]);
 
@@ -319,6 +331,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       supportLevel: preferences.supportLevel,
       glossaryPreference: preferences.glossary,
       bionicPreference: preferences.bionicReading,
+      selectedPreset: inferPresetFromPreferences(preferences),
     });
   };
 

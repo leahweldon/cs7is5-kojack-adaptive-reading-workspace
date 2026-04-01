@@ -1,4 +1,4 @@
-import { Preferences, ReadingGoal, ThemeMode, useApp } from "@/shared/state/AppContext";
+import { Preferences, ReadingGoal, ThemeMode, UserPreset, useApp } from "@/shared/state/AppContext";
 import { ReactNode, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
@@ -13,7 +13,7 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 
 type Step = 1 | 2;
 type Preset = {
-  id: "default" | "adhd" | "dyslexia" | "lowvision";
+  id: UserPreset;
   title: string;
   desc: string;
   patch: Partial<Preferences>;
@@ -108,7 +108,7 @@ function applyBionicPreview(word: string) {
 export default function Onboarding() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { userName, setUserName, preferences, setPreferences, resetSession } = useApp();
+  const { userName, setUserName, preferences, setPreferences, setUserModel, resetSession } = useApp();
   const isSettingsRoute = location.pathname === "/settings";
 
   const [step, setStep] = useState<Step>(isSettingsRoute ? 2 : 1);
@@ -134,6 +134,12 @@ export default function Onboarding() {
   const applyPreset = (preset: Preset) => {
     setSelectedPreset(preset.id);
     setPreferences(preset.patch);
+    setUserModel({
+      selectedPreset: preset.id,
+      supportLevel: preset.patch.supportLevel ?? preferences.supportLevel,
+      glossaryPreference: preset.patch.glossary ?? preferences.glossary,
+      bionicPreference: preset.patch.bionicReading ?? preferences.bionicReading,
+    });
   };
 
   const previewContent = useMemo(() => {
@@ -309,7 +315,6 @@ export default function Onboarding() {
               <ToggleRow label="Bionic reading" value={preferences.bionicReading} onChange={(v) => setPreferences({ bionicReading: v })} />
               <ToggleRow label="Chunking" value={preferences.chunking} onChange={(v) => setPreferences({ chunking: v })} />
               <ToggleRow label="Glossary" value={preferences.glossary} onChange={(v) => setPreferences({ glossary: v })} />
-              <ToggleRow label="Adaptive prompts" value={preferences.adaptivePrompts} onChange={(v) => setPreferences({ adaptivePrompts: v })} />
               <ToggleRow label="Progress indicators" value={preferences.progressIndicators} onChange={(v) => setPreferences({ progressIndicators: v })} />
             </Card>
 

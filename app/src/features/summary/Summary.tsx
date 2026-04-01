@@ -1,4 +1,4 @@
-import { useApp } from "@/shared/state/AppContext";
+import { Preferences, SupportLevel, UserPreset, useApp } from "@/shared/state/AppContext";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -9,6 +9,95 @@ import { Progress } from "@/components/ui/progress";
 import { ChevronDown, ChevronUp } from "lucide-react";
 
 type Concept = { name: string; confidence: number };
+type AutoAdjustment = {
+  profile: UserPreset;
+  summary: string;
+  previousPreferences: Preferences;
+};
+
+function profileLabel(profile: UserPreset) {
+  switch (profile) {
+    case "adhd":
+      return "ADHD Focus";
+    case "dyslexia":
+      return "Dyslexia Support";
+    case "lowvision":
+      return "Visual Impairment";
+    default:
+      return "Default";
+  }
+}
+
+function inferProfileFromPreferences(preferences: Preferences): UserPreset {
+  if (preferences.theme === "high-contrast" || preferences.fontSize >= 22) return "lowvision";
+  if (preferences.bionicReading && preferences.chunking && preferences.fontSize >= 18) return "dyslexia";
+  if (preferences.chunking && preferences.adaptivePrompts && preferences.maxLineWidth <= 640) return "adhd";
+  return "default";
+}
+
+function getNoFeedbackAdjustment(profile: UserPreset, preferences: Preferences, supportLevel: SupportLevel) {
+  const isHigh = supportLevel === "high";
+
+  switch (profile) {
+    case "adhd":
+      return {
+        patch: {
+          supportLevel: isHigh ? "high" as const : "medium" as const,
+          chunking: true,
+          adaptivePrompts: true,
+          promptFrequency: isHigh ? "high" as const : "medium" as const,
+          maxLineWidth: Math.min(preferences.maxLineWidth, isHigh ? 600 : 640),
+          distractionPrompts: true,
+          encouragementNudges: true,
+        },
+        summary: isHigh
+          ? "enabled tighter chunking, more frequent prompts, and narrower line width"
+          : "enabled chunking, prompts, and a slightly narrower line width",
+      };
+    case "dyslexia":
+      return {
+        patch: {
+          supportLevel: isHigh ? "high" as const : "medium" as const,
+          bionicReading: true,
+          chunking: true,
+          glossary: true,
+          fontSize: Math.min(preferences.fontSize + (isHigh ? 2 : 1), 24),
+          lineSpacing: Math.min(Number((preferences.lineSpacing + (isHigh ? 0.2 : 0.1)).toFixed(1)), 2.2),
+          maxLineWidth: Math.min(preferences.maxLineWidth, 760),
+        },
+        summary: isHigh
+          ? "reinforced bionic + chunking and increased font/line spacing for readability"
+          : "enabled readability aids with modest font/spacing increases",
+      };
+    case "lowvision":
+      return {
+        patch: {
+          theme: "high-contrast" as const,
+          supportLevel: isHigh ? "high" as const : "medium" as const,
+          fontSize: Math.min(preferences.fontSize + (isHigh ? 2 : 1), 28),
+          lineSpacing: Math.min(Number((preferences.lineSpacing + (isHigh ? 0.2 : 0.1)).toFixed(1)), 2.4),
+          maxLineWidth: Math.min(preferences.maxLineWidth, isHigh ? 780 : 820),
+          progressIndicators: true,
+        },
+        summary: isHigh
+          ? "raised contrast and text sizing while keeping lines easier to track"
+          : "applied contrast-focused readability tweaks",
+      };
+    default:
+      return {
+        patch: {
+          supportLevel: isHigh ? "high" as const : "medium" as const,
+          chunking: true,
+          adaptivePrompts: true,
+          glossary: true,
+          lineSpacing: Math.min(Number((preferences.lineSpacing + (isHigh ? 0.1 : 0.05)).toFixed(1)), 2.0),
+        },
+        summary: isHigh
+          ? "enabled more guidance with chunking, glossary, and slightly wider spacing"
+          : "enabled a balanced guidance tweak",
+      };
+  }
+}
 
 function formatTime(totalSec: number) {
   const m = Math.floor(totalSec / 60);
@@ -18,14 +107,14 @@ function formatTime(totalSec: number) {
 
 export default function Summary() {
   const navigate = useNavigate();
-  const { userName, session, savedDictionary, changeLog, preferences, documentText, userModel, addChange } = useApp();
+  const { userName, session, savedDictionary, changeLog, preferences, setPreferences, documentText, userModel, setUserModel, addChange, layoutLocked } = useApp();
 
   const [feedback, setFeedback] = useState<"yes" | "no" | null>(null);
-  const [feedbackDetail, setFeedbackDetail] = useState("");
 
   const [isExpanded, setIsExpanded] = useState(false);
   const [showFullDictionary, setShowFullDictionary] = useState(false);
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
+  const [autoAdjustment, setAutoAdjustment] = useState<AutoAdjustment | null>(null);
 
   useEffect(() => {
     if (!session.startTime || !documentText || documentText.trim().length === 0) {
@@ -105,13 +194,57 @@ export default function Summary() {
     URL.revokeObjectURL(url);
   };
 
-  const handleSubmitFeedback = () => {
-    const msg = `User feedback (${feedback ?? "none"}): ${feedbackDetail.trim()}`;
+  const handleSubmitFeedback = (value: "yes" | "no") => {
+    setFeedback(value);
+    const msg = `User feedback (${value}): (no extra comments)`;
     addChange(msg, "suggestion");
-    setFeedbackDetail("");
+
+    if (value === "no") {
+      if (layoutLocked) {
+        addChange("Auto-adjustment skipped because layout lock is enabled. Prompt shown for user awareness only.", "info");
+        setAutoAdjustment(null);
+        setFeedbackSubmitted(true);
+        return;
+      }
+
+      if (preferences.supportLevel === "low") {
+        addChange("Auto-adjustment skipped because support intensity is low.", "info");
+        setAutoAdjustment(null);
+        setFeedbackSubmitted(true);
+        return;
+      }
+
+      const activeProfile = userModel.selectedPreset ?? inferProfileFromPreferences(preferences);
+      const { patch, summary } = getNoFeedbackAdjustment(activeProfile, preferences, preferences.supportLevel);
+
+      setPreferences(patch);
+      setUserModel({
+        supportLevel: patch.supportLevel ?? userModel.supportLevel,
+        glossaryPreference: patch.glossary ?? userModel.glossaryPreference,
+        bionicPreference: patch.bionicReading ?? userModel.bionicPreference,
+      });
+
+      const profileText = profileLabel(activeProfile);
+      addChange(`Auto-adjustment applied for ${profileText}: ${summary}.`, "auto");
+      setAutoAdjustment({
+        profile: activeProfile,
+        summary,
+        previousPreferences: { ...preferences },
+      });
+    } else {
+      setAutoAdjustment(null);
+    }
+
     setFeedbackSubmitted(true);
     // optionally collapse or clear feedback selection:
     // setFeedback(null);
+  };
+
+  const undoAutoAdjustment = () => {
+    if (!autoAdjustment) return;
+    setPreferences(autoAdjustment.previousPreferences);
+    addChange("Auto-adjustment was reverted by user.", "info");
+    setAutoAdjustment(null);
   };
 
   return (
@@ -282,45 +415,36 @@ export default function Summary() {
           <div className="grid gap-3 sm:grid-cols-2">
             <Button
               variant={feedback === "yes" ? "default" : "outline"}
-              onClick={() => setFeedback("yes")}
+              onClick={() => handleSubmitFeedback("yes")}
               disabled={feedbackSubmitted}
             >
               Yes
             </Button>
             <Button
               variant={feedback === "no" ? "default" : "outline"}
-              onClick={() => setFeedback("no")}
+              onClick={() => handleSubmitFeedback("no")}
               disabled={feedbackSubmitted}
             >
               Not really
             </Button>
           </div>
 
-          {feedback && !feedbackSubmitted && (
-            <>
-              {/* small text field shown once the user clicks yes/no */}
-              <div className="mt-2 flex gap-2">
-                <input
-                  type="text"
-                  className="flex-1 rounded border px-2 py-1 text-sm"
-                  placeholder="Additional comments (optional)"
-                  value={feedbackDetail}
-                  onChange={(e) => setFeedbackDetail(e.target.value)}
-                />
-                <button
-                  type="button"
-                  className="rounded bg-primary px-3 py-1 text-sm text-white hover:bg-primary/90"
-                  onClick={handleSubmitFeedback}
-                >
-                  Submit
-                </button>
-              </div>
-            </>
-          )}
-
           {feedbackSubmitted && (
-            <div className="text-sm text-muted-foreground mt-1">
-              Thanks — feedback submitted.
+            <div className="space-y-2 mt-1">
+              <div className="text-sm text-muted-foreground">
+                Thanks - feedback submitted.
+              </div>
+              {autoAdjustment && (
+                <div className="rounded-xl border px-3 py-2 text-sm">
+                  <div className="font-medium">Automatic tweak applied for {profileLabel(autoAdjustment.profile)}</div>
+                  <div className="text-muted-foreground">{autoAdjustment.summary}</div>
+                  <div className="pt-2">
+                    <Button type="button" size="sm" variant="outline" onClick={undoAutoAdjustment}>
+                      Undo automatic change
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </Card>

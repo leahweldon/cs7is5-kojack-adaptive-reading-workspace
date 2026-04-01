@@ -11,10 +11,13 @@ type Nudge = {
   title: string;
   message: string;
   reason: string;
+  autoApplied?: boolean;
+  changedKey?: "chunking" | "bionicReading";
+  previousValue?: boolean;
 };
 
 export default function Nudges() {
-  const { preferences, session, addChange, setPreferences, bumpToggle } = useApp();
+  const { preferences, session, addChange, setPreferences, bumpToggle, layoutLocked, setUserModel } = useApp();
 
   const [active, setActive] = useState<Nudge | null>(null);
 
@@ -76,20 +79,61 @@ export default function Nudges() {
       reason: "You've scrolled back through this section several times.",
     };
 
-    const t = window.setTimeout(() => {
-      setActive(n);
-      lastShownAtRef.current = Date.now();
-      addChange(`Distraction prompt shown: "${n.message}"`, "suggestion");
-    }, 0);
+    if (preferences.supportLevel === "high") {
+      if (!layoutLocked) {
+        if (!preferences.chunking) {
+          setPreferences({ chunking: true });
+          bumpToggle("chunking");
+          addChange("Chunking auto-enabled from nudge (high support intensity).", "auto");
+          n.autoApplied = true;
+          n.changedKey = "chunking";
+          n.previousValue = false;
+          n.message = "Chunking was enabled automatically.";
+          n.reason = "Changed automatically because support intensity is high.";
+        } else if (!preferences.bionicReading) {
+          setPreferences({ bionicReading: true });
+          bumpToggle("bionicReading");
+          setUserModel({ bionicPreference: true });
+          addChange("Bionic reading auto-enabled from nudge (high support intensity).", "auto");
+          n.autoApplied = true;
+          n.changedKey = "bionicReading";
+          n.previousValue = false;
+          n.message = "Bionic reading was enabled automatically.";
+          n.reason = "Changed automatically because support intensity is high.";
+        } else {
+          // High mode should still adapt when common toggles are already enabled.
+          setPreferences({ bionicReading: false });
+          bumpToggle("bionicReading");
+          setUserModel({ bionicPreference: false });
+          addChange("Bionic reading auto-disabled from nudge (high support intensity).", "auto");
+          n.autoApplied = true;
+          n.changedKey = "bionicReading";
+          n.previousValue = true;
+          n.message = "Bionic reading was disabled automatically.";
+          n.reason = "Changed automatically because support intensity is high.";
+        }
+      } else {
+        n.reason = "Support intensity is high, but layout lock blocks automatic changes.";
+      }
+    }
 
-    return () => window.clearTimeout(t);
+    setActive(n);
+    lastShownAtRef.current = Date.now();
+    addChange(`Distraction prompt shown: "${n.message}"`, "suggestion");
   }, [
     preferences.distractionPrompts,
+    preferences.supportLevel,
+    preferences.chunking,
+    preferences.bionicReading,
     session.scrollBackCount,
     session.longPauseCount,
     active,
     cooldownMs,
     addChange,
+    layoutLocked,
+    bumpToggle,
+    setPreferences,
+    setUserModel,
   ]);
 
   if (!active) return null;
@@ -112,12 +156,25 @@ export default function Nudges() {
     if (!preferences.bionicReading) {
       setPreferences({ bionicReading: true });
       bumpToggle("bionicReading");
+      setUserModel({ bionicPreference: true });
       addChange("Bionic reading enabled from nudge.", "auto");
     }
     setActive(null);
   };
 
   const Icon = active.kind === "encouragement" ? Sparkles : Focus;
+
+  const undoAutoApplied = () => {
+    if (!active.autoApplied || !active.changedKey || active.previousValue === undefined) return;
+
+    setPreferences({ [active.changedKey]: active.previousValue });
+    if (active.changedKey === "bionicReading") {
+      setUserModel({ bionicPreference: active.previousValue });
+    }
+
+    addChange(`${active.changedKey} automatic nudge change undone by user.`, "info");
+    setActive(null);
+  };
 
   return (
     <div className="fixed top-20 left-1/2 -translate-x-1/2 w-full max-w-md px-4 z-40 animate-in fade-in-0 slide-in-from-top-2">
@@ -137,18 +194,23 @@ export default function Nudges() {
 
             {active.kind === "distraction" && (
               <div className="flex gap-2 flex-wrap pt-1">
-                {!preferences.chunking && (
+                {!active.autoApplied && preferences.supportLevel !== "high" && !preferences.chunking && (
                   <Button size="sm" onClick={enableChunking}>
                     Enable chunking
                   </Button>
                 )}
-                {!preferences.bionicReading && (
+                {!active.autoApplied && preferences.supportLevel !== "high" && !preferences.bionicReading && (
                   <Button size="sm" variant="outline" onClick={enableBionic}>
                     Enable bionic
                   </Button>
                 )}
+                {active.autoApplied && (
+                  <Button size="sm" onClick={undoAutoApplied}>
+                    Undo
+                  </Button>
+                )}
                 <Button size="sm" variant="ghost" onClick={dismiss}>
-                  Dismiss
+                  {active.autoApplied ? "OK" : "Dismiss"}
                 </Button>
               </div>
             )}
